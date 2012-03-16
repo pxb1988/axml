@@ -1,39 +1,16 @@
 package p.axml;
 
-import java.io.DataOutput;
 import java.io.IOException;
 
 import com.googlecode.dex2jar.reader.io.DataIn;
+import com.googlecode.dex2jar.reader.io.DataOut;
 
-public abstract class AbstractXmlTag extends Action {
+public abstract class AbstractXmlTag extends Item {
+    public StringItem name;
+    public StringItem namespace;
+
     public AbstractXmlTag(int type) {
         super(type);
-    }
-
-    public StringItem namespace;
-    public StringItem name;
-
-    @Override
-    public void read(DataIn in, Ctx ctx) {
-        super.read(in, ctx);
-        int namespaceUri = in.readIntx();
-        int name = in.readIntx();
-
-        this.name = ctx.stringItems.get(name);
-        if (namespaceUri >= 0) {
-            this.namespace = ctx.stringItems.get(name);
-        }
-    }
-
-    @Override
-    public void write(DataOutput out) throws IOException {
-        super.write(out);
-        out.writeInt(name.index);
-        if (namespace != null) {
-            out.writeInt(this.namespace.index);
-        } else {
-            out.writeInt(0);
-        }
     }
 
     @Override
@@ -48,6 +25,29 @@ public abstract class AbstractXmlTag extends Action {
         }
         if (this.namespace != null) {
             this.namespace = ctx.update(this.namespace);
+        }
+    }
+
+    @Override
+    public void read(DataIn in, Ctx ctx) {
+        super.read(in, ctx);
+        int namespaceUri = in.readIntx();
+        int name = in.readIntx();
+
+        this.name = ctx.stringItems.get(name);
+        if (namespaceUri >= 0) {
+            this.namespace = ctx.stringItems.get(name);
+        }
+    }
+
+    @Override
+    public void write(DataOut out) throws IOException {
+        super.write(out);
+        out.writeInt(name.index);
+        if (namespace != null) {
+            out.writeInt(this.namespace.index);
+        } else {
+            out.writeInt(0);
         }
     }
 }

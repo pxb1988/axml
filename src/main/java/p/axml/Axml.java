@@ -1,35 +1,30 @@
 package p.axml;
 
-import java.io.DataOutput;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
 import com.googlecode.dex2jar.reader.io.DataIn;
-import com.googlecode.dex2jar.reader.io.LeArrayDataIn;
+import com.googlecode.dex2jar.reader.io.DataOut;
 
 public class Axml {
 
     public static final int CHUNK_AXML_FILE = 0x00080003;
     public static final int CHUNK_RESOURCEIDS = 0x00080180;
     public static final int CHUNK_STRINGS = 0x001C0001;
-    public static final int CHUNK_XML_START_NAMESPACE = 0x00100100;
     public static final int CHUNK_XML_END_NAMESPACE = 0x00100101;
-    public static final int CHUNK_XML_START_TAG = 0x00100102;
     public static final int CHUNK_XML_END_TAG = 0x00100103;
+    public static final int CHUNK_XML_START_NAMESPACE = 0x00100100;
+    public static final int CHUNK_XML_START_TAG = 0x00100102;
 
-    public static final int TYPE_STRING = 0x03;
-    public static final int TYPE_REFERENCE = 0x01;
     public static final int TYPE_FIRST_INT = 0x10;
-    public static final int TYPE_INT_HEX = 0x11;
     public static final int TYPE_INT_BOOLEAN = 0x12;
+    public static final int TYPE_INT_HEX = 0x11;
+    public static final int TYPE_REFERENCE = 0x01;
+    public static final int TYPE_STRING = 0x03;
 
-    public static List<Action> read(DataIn in) throws IOException {
-        List<Action> actions = new ArrayList<Action>();
+    public static List<Item> read(DataIn in) throws IOException {
+        List<Item> items = new ArrayList<Item>();
         Ctx ctx = new Ctx();
         int fileSize;
         {
@@ -44,27 +39,27 @@ public class Axml {
             int size = in.readIntx();
             switch (type) {
             case CHUNK_XML_START_TAG: {
-                Action action = new XmlStartTag();
-                action.read(in, ctx);
-                actions.add(action);
+                Item item = new XmlStartTag();
+                item.read(in, ctx);
+                items.add(item);
             }
                 break;
             case CHUNK_XML_END_TAG: {
-                Action action = new XmlEndTag();
-                action.read(in, ctx);
-                actions.add(action);
+                Item item = new XmlEndTag();
+                item.read(in, ctx);
+                items.add(item);
             }
                 break;
             case CHUNK_XML_START_NAMESPACE: {
-                Action action = new XmlStartNamespace();
-                action.read(in, ctx);
-                actions.add(action);
+                Item item = new XmlStartNamespace();
+                item.read(in, ctx);
+                items.add(item);
             }
                 break;
             case CHUNK_XML_END_NAMESPACE: {
-                Action action = new XmlEndNamespace();
-                action.read(in, ctx);
-                actions.add(action);
+                Item item = new XmlEndNamespace();
+                item.read(in, ctx);
+                items.add(item);
             }
                 break;
             case CHUNK_STRINGS:
@@ -78,14 +73,14 @@ public class Axml {
             }
             in.move(p + size);
         }
-        return actions;
+        return items;
     }
 
-    public static void write(List<Action> actions, DataOutput out) throws IOException {
+    public static void write(List<Item> items, DataOut out) throws IOException {
         int size = 8;
         Ctx ctx = new Ctx();
         // prepare start
-        for (Action action : actions) {
+        for (Item action : items) {
             action.prepare(ctx);
             size += action.getSize();
         }
@@ -107,24 +102,14 @@ public class Axml {
         out.writeInt(CHUNK_STRINGS);
         out.writeInt(itemSize + 8);
         ctx.stringItems.write(out);
-        out.write(new byte[stringPadding]);// padding
+        out.writeBytes(new byte[stringPadding]);// padding
 
         // ctx.writeResourceItems(out); //TODO
-        for (Action action : actions) {
-            out.writeInt(action.type);
-            out.write(action.getSize() + 8);
-            action.write(out);
+        for (Item item : items) {
+            out.writeInt(item.type);
+            out.writeInt(item.getSize() + 8);
+            item.write(out);
         }
     }
 
-    public static void main(String... args) throws Exception {
-        InputStream is = new FileInputStream("src/main/resources/AndroidManifest.xml");
-        // InputStream is = new FileInputStream("a");
-        byte[] xml = new byte[is.available()];
-        is.read(xml);
-        DataIn in = new LeArrayDataIn(xml);
-        OutputStream os = new FileOutputStream("b");
-        Axml.write(Axml.read(in), new LeDataOut(os));
-        os.close();
-    }
 }

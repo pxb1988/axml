@@ -1,32 +1,16 @@
 package p.axml;
 
-import java.io.DataOutput;
 import java.io.IOException;
 
 import com.googlecode.dex2jar.reader.io.DataIn;
+import com.googlecode.dex2jar.reader.io.DataOut;
 
-public abstract class AbstractXmlNamespace extends Action {
+public abstract class AbstractXmlNamespace extends Item {
     public StringItem prefix;
     public StringItem uri;
 
     public AbstractXmlNamespace(int type) {
         super(type);
-    }
-
-    @Override
-    public void read(DataIn in, Ctx ctx) {
-        super.read(in, ctx);
-        int prefix = in.readIntx();
-        int uri = in.readIntx();
-        this.prefix = ctx.stringItems.get(prefix);
-        this.uri = ctx.stringItems.get(uri);
-    }
-
-    @Override
-    public void write(DataOutput out) throws IOException {
-        super.write(out);
-        out.writeInt(prefix.index);
-        out.writeInt(uri.index);
     }
 
     @Override
@@ -42,6 +26,22 @@ public abstract class AbstractXmlNamespace extends Action {
         if (this.uri != null) {
             this.uri = ctx.update(uri);
         }
+    }
+
+    @Override
+    public void read(DataIn in, Ctx ctx) {
+        super.read(in, ctx);
+        int prefix = in.readIntx();
+        int uri = in.readIntx();
+        this.prefix = ctx.stringItems.get(prefix);
+        this.uri = ctx.stringItems.get(uri);
+    }
+
+    @Override
+    public void write(DataOut out) throws IOException {
+        super.write(out);
+        out.writeInt(prefix.index);
+        out.writeInt(uri.index);
     }
 
 }

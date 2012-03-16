@@ -1,14 +1,15 @@
 package p.axml;
 
+import static p.axml.Ctx.UTF8_FLAG;
+
 import java.io.ByteArrayOutputStream;
-import java.io.DataOutput;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.TreeMap;
 
 import com.googlecode.dex2jar.reader.io.DataIn;
-import static p.axml.Ctx.*;
+import com.googlecode.dex2jar.reader.io.DataOut;
 
 public class StringItems extends ArrayList<StringItem> {
 
@@ -64,9 +65,10 @@ public class StringItems extends ArrayList<StringItem> {
         }
     }
 
-    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    byte[] stringData;
 
     public void prepare() throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
         int i = 0;
         int offset = 0;
         baos.reset();
@@ -75,7 +77,7 @@ public class StringItems extends ArrayList<StringItem> {
             item.dataOffset = offset;
             int length = item.data.length();
             byte[] data = item.data.getBytes("UTF-16LE");
-            baos.write(length );
+            baos.write(length);
             baos.write(length >> 8);
             baos.write(data);
             baos.write(0);
@@ -83,13 +85,14 @@ public class StringItems extends ArrayList<StringItem> {
             offset += 4 + data.length;
         }
         // TODO
+        stringData = baos.toByteArray();
     }
 
     public int getSize() {
-        return 5 * 4 + this.size() * 4 + baos.size() + 0;// TODO
+        return 5 * 4 + this.size() * 4 + stringData.length + 0;// TODO
     }
 
-    public void write(DataOutput out) throws IOException {
+    public void write(DataOut out) throws IOException {
         out.writeInt(this.size());
         out.writeInt(0);// TODO
         out.writeInt(0);
@@ -98,7 +101,7 @@ public class StringItems extends ArrayList<StringItem> {
         for (StringItem item : this) {
             out.writeInt(item.dataOffset);
         }
-        out.write(baos.toByteArray());
+        out.writeBytes(stringData);
         // TODO
     }
 }

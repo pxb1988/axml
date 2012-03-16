@@ -1,21 +1,34 @@
 package p.axml;
 
-import java.io.DataOutput;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 import com.googlecode.dex2jar.reader.io.DataIn;
+import com.googlecode.dex2jar.reader.io.DataOut;
 
 public class XmlStartTag extends AbstractXmlTag {
 
     public List<Attribute> attrs = new ArrayList<Attribute>();
-    public int idAttribute;
     public int classAttribute;
+    public int idAttribute;
     public int styleAttribute;
 
     public XmlStartTag() {
         super(Axml.CHUNK_XML_START_TAG);
+    }
+
+    @Override
+    public int getSize() {
+        return super.getSize() + 4 + 4 * 2 + this.attrs.size() * 5 * 4;
+    }
+
+    @Override
+    public void prepare(Ctx ctx) {
+        super.prepare(ctx);
+        for (Attribute attr : attrs) {
+            attr.prepare(ctx);
+        }
     }
 
     @Override
@@ -33,8 +46,26 @@ public class XmlStartTag extends AbstractXmlTag {
         }
     }
 
+    public String toString() {
+        if (this.name == null) {
+            return "START TAG";
+        }
+        StringBuilder sb = new StringBuilder().append("<").append(this.name.data);
+        if (this.namespace != null) {
+            sb.append("p:ns=\"").append(this.namespace.data).append("\"\n");
+        }
+        if (this.attrs.size() > 0) {
+            sb.append("\n");
+            for(Attribute attr:attrs){
+                sb.append(attr).append("\n");
+            }
+        }
+        sb.append(">");
+        return sb.toString();
+    }
+
     @Override
-    public void write(DataOutput out) throws IOException {
+    public void write(DataOut out) throws IOException {
         super.write(out);
         out.writeInt(0);// TODO
         out.writeShort(this.attrs.size());
@@ -43,19 +74,6 @@ public class XmlStartTag extends AbstractXmlTag {
         out.writeShort(this.styleAttribute + 1);
         for (Attribute attr : attrs) {
             attr.write(out);
-        }
-    }
-
-    @Override
-    public int getSize() {
-        return super.getSize() + 4 + 4 * 2 + this.attrs.size() * 5 * 4;
-    }
-
-    @Override
-    public void prepare(Ctx ctx) {
-        super.prepare(ctx);
-        for (Attribute attr : attrs) {
-            attr.prepare(ctx);
         }
     }
 

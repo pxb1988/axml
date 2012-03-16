@@ -1,13 +1,9 @@
 package p.axml;
 
-import java.io.ByteArrayOutputStream;
 import java.io.DataOutput;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
 
 import com.googlecode.dex2jar.reader.io.DataIn;
 
@@ -17,16 +13,6 @@ public class Ctx {
     public StringItems stringItems = new StringItems();
     List<StringItem> styleItems = new ArrayList();
 
-    public StringItem update(StringItem item) {
-        int i = this.stringItems.indexOf(item);
-        if (i < 0) {
-            this.stringItems.add(item);
-            return item;
-        } else {
-            return this.stringItems.get(i);
-        }
-    }
-
     public void readResourceItems(DataIn in, int size) throws IOException {
         int count = size / 4 - 2;
         for (int i = 0; i < count; i++) {
@@ -34,7 +20,17 @@ public class Ctx {
             resourceItem.index = i;
             resourceItem.data = in.readIntx();
             resourceItems.add(resourceItem);
-            // System.out.println(resourceItem);
+             System.out.println(resourceItem);
+        }
+    }
+
+    public StringItem update(StringItem item) {
+        int i = this.stringItems.indexOf(item);
+        if (i < 0) {
+            this.stringItems.add(item);
+            return item;
+        } else {
+            return this.stringItems.get(i);
         }
     }
 

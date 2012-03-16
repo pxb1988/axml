@@ -1,31 +1,30 @@
 package p.axml;
 
-import static p.axml.Axml.TYPE_FIRST_INT;
-import static p.axml.Axml.TYPE_INT_BOOLEAN;
-import static p.axml.Axml.TYPE_INT_HEX;
-import static p.axml.Axml.TYPE_REFERENCE;
-import static p.axml.Axml.TYPE_STRING;
-
-import java.io.DataOutput;
 import java.io.IOException;
 
 import com.googlecode.dex2jar.reader.io.DataIn;
+import com.googlecode.dex2jar.reader.io.DataOut;
+import static p.axml.Axml.*;
 
 public class Attribute {
 
     public StringItem namespace, name, valueString;
     int valueType, value;
 
-    public void write(DataOutput out) throws IOException {
-        out.write(this.namespace == null ? -1 : this.namespace.index);
-        out.write(this.name.index);
-        out.write(this.valueString == null ? -1 : this.valueString.index);
-        out.write((this.valueType << 24) | 0x000008);
-        out.write(this.value);
-    }
-
     public int getSize() {
         return 5 * 4;
+    }
+
+    public void prepare(Ctx ctx) {
+        if (this.namespace != null) {
+            this.namespace = ctx.update(this.namespace);
+        }
+        if (this.name != null) {
+            this.name = ctx.update(this.name);
+        }
+        if (this.valueString != null) {
+            this.valueString = ctx.update(this.valueString);
+        }
     }
 
     public void read(DataIn in, Ctx ctx) {
@@ -46,42 +45,42 @@ public class Attribute {
         }
         this.value = aValue;
         this.valueType = aValueType >>> 24;
-//        switch (aValueType >>> 24) {
-//        case TYPE_REFERENCE:
-//            System.out.println(String.format(" %s = 'REF|0x%08x' //%s", ctx.stringItems.get(aName).data, aValue,
-//                    aNS < 0 ? "-1" : ctx.stringItems.get(aNS)));
-//            break;
-//        case TYPE_STRING:
-//            System.out.println(String.format(" %s = 'ST|%s' //%s", ctx.stringItems.get(aName).data,
-//                    ctx.stringItems.get(aValueString).data, aNS < 0 ? "-1" : ctx.stringItems.get(aNS)));
-//            break;
-//        case TYPE_FIRST_INT:
-//            System.out.println(String.format(" %s = 'INTF|%d' //%s", ctx.stringItems.get(aName).data, aValue,
-//                    aNS < 0 ? "-1" : ctx.stringItems.get(aNS)));
-//            break;
-//        case TYPE_INT_BOOLEAN:
-//            System.out.println(String.format(" %s = 'Z|%s' //%s", ctx.stringItems.get(aName).data, aValue != 0 ? "true"
-//                    : "false", aNS < 0 ? "-1" : ctx.stringItems.get(aNS)));
-//            break;
-//        case TYPE_INT_HEX:
-//            System.out.println(String.format(" %s = 'INTH|%08x' //%s", ctx.stringItems.get(aName).data, aValue,
-//                    aNS < 0 ? "-1" : ctx.stringItems.get(aNS)));
-//            break;
-//        default:
-//            throw new RuntimeException();
-//        }
     }
 
-    public void prepare(Ctx ctx) {
+    public String toString() {
+        StringBuilder sb = new StringBuilder(" ").append(this.name.data).append(" = \"");
+        switch (valueType) {
+        case TYPE_REFERENCE:
+            sb.append(String.format("REF|0x%08x", this.value));
+            break;
+        case TYPE_STRING:
+            sb.append(String.format("ST|%s", this.valueString));
+            break;
+        case TYPE_FIRST_INT:
+            sb.append(String.format("INTF|%d", this.value));
+            break;
+        case TYPE_INT_BOOLEAN:
+            sb.append(String.format("Z|%s", this.value != 0 ? "true" : "false"));
+            break;
+        case TYPE_INT_HEX:
+            sb.append(String.format("INTH|%08x", this.value));
+            break;
+        default:
+            sb.append("UNKNOWN");
+        }
+        sb.append("\" ");
         if (this.namespace != null) {
-            this.namespace = ctx.update(this.namespace);
+            sb.append("p:ns=").append(this.namespace.data);
         }
-        if (this.name != null) {
-            this.name = ctx.update(this.name);
-        }
-        if (this.valueString != null) {
-            this.valueString = ctx.update(this.valueString);
-        }
+        return sb.toString();
+    }
+
+    public void write(DataOut out) throws IOException {
+        out.writeInt(this.namespace == null ? -1 : this.namespace.index);
+        out.writeInt(this.name.index);
+        out.writeInt(this.valueString == null ? -1 : this.valueString.index);
+        out.writeInt((this.valueType << 24) | 0x000008);
+        out.writeInt(this.value);
     }
 
 }
