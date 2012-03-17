@@ -1,15 +1,21 @@
 package p.axml;
 
+import static p.axml.Axml.TYPE_FIRST_INT;
+import static p.axml.Axml.TYPE_INT_BOOLEAN;
+import static p.axml.Axml.TYPE_INT_HEX;
+import static p.axml.Axml.TYPE_REFERENCE;
+import static p.axml.Axml.TYPE_STRING;
+
 import java.io.IOException;
 
 import com.googlecode.dex2jar.reader.io.DataIn;
 import com.googlecode.dex2jar.reader.io.DataOut;
-import static p.axml.Axml.*;
 
 public class Attribute {
 
     public StringItem namespace, name, valueString;
-    int valueType, value;
+    public int valueType, value;
+    public int resourceId = 0;
 
     public int getSize() {
         return 5 * 4;
@@ -20,7 +26,11 @@ public class Attribute {
             this.namespace = ctx.update(this.namespace);
         }
         if (this.name != null) {
-            this.name = ctx.update(this.name);
+            if (resourceId != 0) {
+                this.name = ctx.updateWithResourceId(this.name, this.resourceId);
+            } else {
+                this.name = ctx.update(this.name);
+            }
         }
         if (this.valueString != null) {
             this.valueString = ctx.update(this.valueString);
@@ -43,6 +53,11 @@ public class Attribute {
         if (aValueString >= 0) {
             this.valueString = ctx.stringItems.get(aValueString);
         }
+
+        if (aName < ctx.resourceIds.size()) {
+            this.resourceId = ctx.resourceIds.get(aName);
+        }
+
         this.value = aValue;
         this.valueType = aValueType >>> 24;
     }
@@ -54,7 +69,7 @@ public class Attribute {
             sb.append(String.format("REF|0x%08x", this.value));
             break;
         case TYPE_STRING:
-            sb.append(String.format("ST|%s", this.valueString));
+            sb.append(String.format("ST|%s", this.valueString.data));
             break;
         case TYPE_FIRST_INT:
             sb.append(String.format("INTF|%d", this.value));
@@ -69,6 +84,9 @@ public class Attribute {
             sb.append("UNKNOWN");
         }
         sb.append("\" ");
+        if (this.resourceId != 0) {
+            sb.append("p:rs=").append(String.format("\"0x%08x\" ", this.resourceId));
+        }
         if (this.namespace != null) {
             sb.append("p:ns=").append(this.namespace.data);
         }

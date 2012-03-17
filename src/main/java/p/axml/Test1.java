@@ -25,7 +25,11 @@ public class Test1 {
         }
         Axml.write(items, new LeDataOut(os));
         os.close();
-        Axml.read(new LeArrayDataIn(os.toByteArray()));
+        items = Axml.read(new LeArrayDataIn(os.toByteArray()));
+        System.out.println("===========");
+        for (Item item : items) {
+            System.out.println(item);
+        }
     }
 
 }

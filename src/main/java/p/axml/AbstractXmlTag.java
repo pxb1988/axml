@@ -43,11 +43,11 @@ public abstract class AbstractXmlTag extends Item {
     @Override
     public void write(DataOut out) throws IOException {
         super.write(out);
-        out.writeInt(name.index);
         if (namespace != null) {
             out.writeInt(this.namespace.index);
         } else {
-            out.writeInt(0);
+            out.writeInt(-1);
         }
+        out.writeInt(name.index);
     }
 }

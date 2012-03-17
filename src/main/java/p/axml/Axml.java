@@ -66,7 +66,7 @@ public class Axml {
                 ctx.stringItems.read(in, size);
                 break;
             case CHUNK_RESOURCEIDS:
-                ctx.readResourceItems(in, size);
+                ctx.resourceIds.read(in, size);
                 break;
             default:
                 throw new RuntimeException();
@@ -84,7 +84,7 @@ public class Axml {
             action.prepare(ctx);
             size += action.getSize();
         }
-        ctx.stringItems.prepare();
+        ctx.prepare();
         // prepare end
 
         int itemSize = ctx.stringItems.getSize();
@@ -99,12 +99,17 @@ public class Axml {
         out.writeInt(CHUNK_AXML_FILE);
         out.writeInt(size);
 
-        out.writeInt(CHUNK_STRINGS);
-        out.writeInt(itemSize + 8);
-        ctx.stringItems.write(out);
-        out.writeBytes(new byte[stringPadding]);// padding
-
-        // ctx.writeResourceItems(out); //TODO
+        {
+            out.writeInt(CHUNK_STRINGS);
+            out.writeInt(itemSize + 8);
+            ctx.stringItems.write(out);
+            out.writeBytes(new byte[stringPadding]);// padding
+        }
+        {
+            out.writeInt(CHUNK_RESOURCEIDS);
+            out.writeInt(ctx.resourceIds.getSize() + 8);
+            ctx.resourceIds.write(out);
+        }
         for (Item item : items) {
             out.writeInt(item.type);
             out.writeInt(item.getSize() + 8);
