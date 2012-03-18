@@ -82,7 +82,7 @@ public class Axml {
         // prepare start
         for (Item action : items) {
             action.prepare(ctx);
-            size += action.getSize();
+            size += action.getSize() + 8;
         }
         ctx.prepare();
         // prepare end
@@ -93,8 +93,8 @@ public class Axml {
             stringPadding = 4 - (itemSize % 4);
             itemSize += stringPadding;
         }
-        size += itemSize;
-        size += ctx.resourceIds.getSize() * 4;
+        size += itemSize + 8;
+        size += ctx.resourceIds.getSize() + 8;
 
         // start write
         out.writeInt(CHUNK_AXML_FILE);
