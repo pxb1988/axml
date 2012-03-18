@@ -5,6 +5,7 @@ import static p.axml.Ctx.UTF8_FLAG;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -54,6 +55,7 @@ public class StringItems extends ArrayList<StringItem> {
                 in.skip(2);
                 String value = new String(data, "UTF-16LE");
                 stringMap.put(p - base, value);
+                // System.out.println(String.format("%08x %s", p - base, value));
             }
         }
         if (stylesOffset != 0) {
@@ -72,17 +74,25 @@ public class StringItems extends ArrayList<StringItem> {
         int i = 0;
         int offset = 0;
         baos.reset();
+        Map<String, Integer> map = new HashMap<String, Integer>();
         for (StringItem item : this) {
             item.index = i++;
-            item.dataOffset = offset;
-            int length = item.data.length();
-            byte[] data = item.data.getBytes("UTF-16LE");
-            baos.write(length);
-            baos.write(length >> 8);
-            baos.write(data);
-            baos.write(0);
-            baos.write(0);
-            offset += 4 + data.length;
+            String stringData = item.data;
+            Integer of = map.get(stringData);
+            if (of != null) {
+                item.dataOffset = of;
+            } else {
+                item.dataOffset = offset;
+                map.put(stringData, offset);
+                int length = stringData.length();
+                byte[] data = stringData.getBytes("UTF-16LE");
+                baos.write(length);
+                baos.write(length >> 8);
+                baos.write(data);
+                baos.write(0);
+                baos.write(0);
+                offset += 4 + data.length;
+            }
         }
         // TODO
         stringData = baos.toByteArray();

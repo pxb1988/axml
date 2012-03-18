@@ -34,11 +34,16 @@ public class XmlStartTag extends AbstractXmlTag {
     @Override
     public void read(DataIn in, Ctx ctx) {
         super.read(in, ctx);
-        int flag = in.readIntx();
+        int flag = in.readIntx();// 0x00140014 ?
+        if (flag != 0x00140014) {
+            throw new RuntimeException();
+        }
         int attributeCount = in.readUShortx();
-        idAttribute = in.readUShortx() - 1;
-        classAttribute = in.readUShortx() - 1;
-        styleAttribute = in.readUShortx() - 1;
+        idAttribute = in.readUShortx();
+        classAttribute = in.readUShortx();
+        styleAttribute = in.readUShortx();
+//        System.out.println(String.format("%s %08x %08x %08x %08x", this.name.data, flag, this.idAttribute,
+//                this.styleAttribute, this.classAttribute));
         for (int i = 0; i < attributeCount; i++) {
             Attribute a = new Attribute();
             a.read(in, ctx);
@@ -67,11 +72,11 @@ public class XmlStartTag extends AbstractXmlTag {
     @Override
     public void write(DataOut out) throws IOException {
         super.write(out);
-        out.writeInt(0);// TODO
+        out.writeInt(0x00140014);// TODO
         out.writeShort(this.attrs.size());
-        out.writeShort(this.idAttribute + 1);
-        out.writeShort(this.classAttribute + 1);
-        out.writeShort(this.styleAttribute + 1);
+        out.writeShort(this.idAttribute);
+        out.writeShort(this.classAttribute);
+        out.writeShort(this.styleAttribute);
         for (Attribute attr : attrs) {
             attr.write(out);
         }

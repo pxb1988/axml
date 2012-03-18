@@ -5,6 +5,15 @@ public class StringItem {
     public int dataOffset;
     public int index;
 
+    public StringItem(String data) {
+        super();
+        this.data = data;
+    }
+
+    public StringItem() {
+        super();
+    }
+
     @Override
     public boolean equals(Object obj) {
         StringItem b = (StringItem) obj;

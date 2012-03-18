@@ -94,6 +94,7 @@ public class Axml {
             itemSize += stringPadding;
         }
         size += itemSize;
+        size += ctx.resourceIds.getSize() * 4;
 
         // start write
         out.writeInt(CHUNK_AXML_FILE);
