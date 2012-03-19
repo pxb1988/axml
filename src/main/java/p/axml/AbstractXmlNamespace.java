@@ -9,6 +9,12 @@ public abstract class AbstractXmlNamespace extends Item {
     public StringItem prefix;
     public StringItem uri;
 
+    public AbstractXmlNamespace(int type, StringItem prefix, StringItem uri) {
+        super(type);
+        this.prefix = prefix;
+        this.uri = uri;
+    }
+
     public AbstractXmlNamespace(int type) {
         super(type);
     }

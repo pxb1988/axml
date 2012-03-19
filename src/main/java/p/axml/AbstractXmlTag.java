@@ -9,6 +9,12 @@ public abstract class AbstractXmlTag extends Item {
     public StringItem name;
     public StringItem namespace;
 
+    public AbstractXmlTag(int type, StringItem name, StringItem namespace) {
+        super(type);
+        this.name = name;
+        this.namespace = namespace;
+    }
+
     public AbstractXmlTag(int type) {
         super(type);
     }

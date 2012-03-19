@@ -14,6 +14,10 @@ public class XmlStartTag extends AbstractXmlTag {
     public int idAttribute;
     public int styleAttribute;
 
+    public XmlStartTag(StringItem namespace, StringItem name) {
+        super(Axml.CHUNK_XML_START_TAG, name, namespace);
+    }
+
     public XmlStartTag() {
         super(Axml.CHUNK_XML_START_TAG);
     }
@@ -42,8 +46,8 @@ public class XmlStartTag extends AbstractXmlTag {
         idAttribute = in.readUShortx();
         classAttribute = in.readUShortx();
         styleAttribute = in.readUShortx();
-//        System.out.println(String.format("%s %08x %08x %08x %08x", this.name.data, flag, this.idAttribute,
-//                this.styleAttribute, this.classAttribute));
+        // System.out.println(String.format("%s %08x %08x %08x %08x", this.name.data, flag, this.idAttribute,
+        // this.styleAttribute, this.classAttribute));
         for (int i = 0; i < attributeCount; i++) {
             Attribute a = new Attribute();
             a.read(in, ctx);

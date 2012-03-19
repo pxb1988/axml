@@ -6,7 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class Ctx {
+class Ctx {
     public static final int UTF8_FLAG = 0x00000100;
     public StringItems stringItems = new StringItems();
     List<StringItem> styleItems = new ArrayList();

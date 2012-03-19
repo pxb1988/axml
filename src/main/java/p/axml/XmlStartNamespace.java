@@ -2,6 +2,10 @@ package p.axml;
 
 public class XmlStartNamespace extends AbstractXmlNamespace {
 
+    public XmlStartNamespace(StringItem prefix, StringItem uri) {
+        super(Axml.CHUNK_XML_START_NAMESPACE, prefix, uri);
+    }
+
     public XmlStartNamespace() {
         super(Axml.CHUNK_XML_START_NAMESPACE);
     }
@@ -10,6 +14,6 @@ public class XmlStartNamespace extends AbstractXmlNamespace {
         if (this.prefix == null || this.uri == null) {
             return "START NS";
         }
-        return "START xmlns:" + this.prefix.data +"="+ this.uri.data;
+        return "START xmlns:" + this.prefix.data + "=" + this.uri.data;
     }
 }
