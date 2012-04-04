@@ -12,7 +12,7 @@ import java.util.TreeMap;
 import com.googlecode.dex2jar.reader.io.DataIn;
 import com.googlecode.dex2jar.reader.io.DataOut;
 
-class StringItems extends ArrayList<StringItem> {
+public class StringItems extends ArrayList<StringItem> {
 
     public void read(DataIn in, int size) throws IOException {
         int trunkOffset = in.getCurrentPosition() - 4;

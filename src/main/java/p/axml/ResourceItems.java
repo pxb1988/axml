@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import com.googlecode.dex2jar.reader.io.DataIn;
 import com.googlecode.dex2jar.reader.io.DataOut;
 
-class ResourceItems extends ArrayList<Integer> {
+public class ResourceItems extends ArrayList<Integer> {
     public void read(DataIn in, int size) throws IOException {
         int count = size / 4 - 2;
         for (int i = 0; i < count; i++) {
