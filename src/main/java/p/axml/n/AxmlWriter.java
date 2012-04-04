@@ -18,9 +18,13 @@ import p.axml.StringItems;
 import com.googlecode.dex2jar.reader.io.DataOut;
 import com.googlecode.dex2jar.reader.io.LeDataOut;
 
-public class AxmlWriter implements AxmlVisitor {
+public class AxmlWriter extends AxmlVisitor {
     private NodeImpl first;
     Set<Ns> nses = new HashSet();
+
+    public AxmlWriter() {
+        super(null);
+    }
 
     static class Ns {
         @Override
@@ -97,7 +101,7 @@ public class AxmlWriter implements AxmlVisitor {
         }
     }
 
-    static class NodeImpl implements NodeVisitor {
+    static class NodeImpl extends NodeVisitor {
         private StringItem ns;
         private StringItem name;
         private int line;
@@ -106,7 +110,7 @@ public class AxmlWriter implements AxmlVisitor {
         private Map<String, Attr> attrs = new HashMap();
 
         public NodeImpl(String ns, String name) {
-            super();
+            super(null);
             this.ns = ns == null ? null : new StringItem(ns);
             this.name = name == null ? null : new StringItem(name);
         }
@@ -209,7 +213,7 @@ public class AxmlWriter implements AxmlVisitor {
 
     @Override
     public void ns(String prefix, String uri, int ln) {
-        nses.add(new Ns(new StringItem(uri), new StringItem(prefix), ln));
+        nses.add(new Ns(new StringItem(prefix), new StringItem(uri), ln));
     }
 
     @Override
@@ -226,6 +230,8 @@ public class AxmlWriter implements AxmlVisitor {
     List<StringItem> styleItems = new ArrayList();
 
     public StringItem update(StringItem item) {
+        if (item == null)
+            return null;
         int i = this.otherString.indexOf(item);
         if (i < 0) {
             StringItem copy = new StringItem(item.data);
@@ -265,7 +271,7 @@ public class AxmlWriter implements AxmlVisitor {
         this.stringItems.prepare();
         int stringSize = this.stringItems.getSize();
         if (stringSize % 4 != 0) {
-            stringSize += stringSize - stringSize % 4;
+            stringSize += 4 - stringSize % 4;
         }
         size += 8 + stringSize;
         size += 8 + resourceIds.getSize();
@@ -283,14 +289,16 @@ public class AxmlWriter implements AxmlVisitor {
         int stringSize = this.stringItems.getSize();
         int padding = 0;
         if (stringSize % 4 != 0) {
-            padding = stringSize - stringSize % 4;
+            padding = 4 - stringSize % 4;
         }
         out.writeInt(AxmlReader.CHUNK_STRINGS);
         out.writeInt(stringSize + padding + 8);
+        this.stringItems.write(out);
         out.writeBytes(new byte[padding]);
 
         out.writeInt(AxmlReader.CHUNK_RESOURCEIDS);
         out.writeInt(8 + this.resourceIds.getSize());
+        this.resourceIds.write(out);
 
         Stack<Ns> stack = new Stack();
         for (Ns ns : this.nses) {
