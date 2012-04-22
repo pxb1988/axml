@@ -1,4 +1,4 @@
-package p.axml;
+package pxb.android.axml.test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -7,10 +7,10 @@ import java.io.InputStream;
 
 import org.junit.Test;
 
-import p.axml.n.AxmlReader;
-import p.axml.n.AxmlWriter;
-import p.axml.n.DumpAdapter;
-import p.axml.n.EmptyAdapter;
+import pxb.android.axml.AxmlReader;
+import pxb.android.axml.AxmlWriter;
+import pxb.android.axml.DumpAdapter;
+import pxb.android.axml.EmptyAdapter;
 
 import com.googlecode.dex2jar.reader.io.LeArrayDataIn;
 

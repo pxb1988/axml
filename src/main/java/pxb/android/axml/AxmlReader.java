@@ -13,16 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package p.axml.n;
+package pxb.android.axml;
 
-import static p.axml.n.AxmlVisitor.TYPE_STRING;
+import static pxb.android.axml.AxmlVisitor.TYPE_STRING;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
 
-import p.axml.n.AxmlVisitor.NodeVisitor;
+import pxb.android.axml.AxmlVisitor.NodeVisitor;
 
 import com.googlecode.dex2jar.reader.io.DataIn;
 import com.googlecode.dex2jar.reader.io.LeArrayDataIn;
