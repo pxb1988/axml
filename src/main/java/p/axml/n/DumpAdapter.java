@@ -69,6 +69,15 @@ public class DumpAdapter extends AxmlVisitor {
         protected int deep;
         protected Map<String, String> nses;
 
+        @Override
+        public void text(int ln, String value) {
+            for (int i = 0; i < deep + 1; i++) {
+                System.out.print("  ");
+            }
+            System.out.println(value);
+            super.text(ln, value);
+        }
+
         public DumpNodeAdapter(NodeVisitor nv) {
             super(nv);
             this.deep = 0;

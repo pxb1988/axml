@@ -72,7 +72,8 @@ public class AxmlWriter extends AxmlVisitor {
         private int line;
         private StringItem name;
         private StringItem ns;
-        private String text;
+        private StringItem text;
+        private int textLineNumber;
 
         public NodeImpl(String ns, String name) {
             super(null);
@@ -112,17 +113,21 @@ public class AxmlWriter extends AxmlVisitor {
             for (Attr attr : attrs.values()) {
                 attr.prepare(axmlWriter);
             }
+            text = axmlWriter.update(text);
             int size = 24 + 36 + attrs.size() * 20;// 24 for end tag,36+x*20 for start tag
             for (NodeImpl child : children) {
                 size += child.prepare(axmlWriter);
+            }
+            if (text != null) {
+                size += 28;
             }
             return size;
         }
 
         @Override
-        public void text(String value) {
-            // TODO impl
-            this.text = value;
+        public void text(int ln, String value) {
+            this.text = new StringItem(value);
+            this.textLineNumber = ln;
         }
 
         void write(DataOut out) throws IOException {
@@ -151,11 +156,20 @@ public class AxmlWriter extends AxmlVisitor {
                 }
             }
 
+            if (this.text != null) {
+                out.writeInt(AxmlReader.CHUNK_XML_TEXT);
+                out.writeInt(28);
+                out.writeInt(textLineNumber);
+                out.writeInt(0xFFFFFFFF);
+                out.writeInt(text.index);
+                out.writeInt(0x00000008);
+                out.writeInt(0x00000000);
+            }
+
             // children
             for (NodeImpl child : children) {
                 child.write(out);
             }
-            // TODO text
 
             // end tag
             out.writeInt(AxmlReader.CHUNK_XML_END_TAG);

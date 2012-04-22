@@ -42,6 +42,7 @@ public class AxmlReader {
     static final int CHUNK_XML_END_TAG = 0x00100103;
     static final int CHUNK_XML_START_NAMESPACE = 0x00100100;
     static final int CHUNK_XML_START_TAG = 0x00100102;
+    static final int CHUNK_XML_TEXT = 0x00100104;
     private StringItems stringItems = new StringItems();
     private List<Integer> resourceIds = new ArrayList<Integer>();
     private DataIn in;
@@ -146,6 +147,14 @@ public class AxmlReader {
                 for (int i = 0; i < count; i++) {
                     resourceIds.add(in.readIntx());
                 }
+                break;
+            case CHUNK_XML_TEXT:
+                lineNumber = in.readIntx();
+                in.skip(4);/* 0xFFFFFFFF */
+                nameIdx = in.readIntx();
+                in.skip(8); /* 00000008 00000000 */
+                name = stringItems.get(nameIdx).data;
+                nv.text(lineNumber, name);
                 break;
             default:
                 throw new RuntimeException();

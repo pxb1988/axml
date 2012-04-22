@@ -116,9 +116,9 @@ public abstract class AxmlVisitor {
          * 
          * @param value
          */
-        public void text(String value) {
+        public void text(int lineNumber, String value) {
             if (nv != null) {
-                nv.text(value);
+                nv.text(lineNumber, value);
             }
         }
 
