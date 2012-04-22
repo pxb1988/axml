@@ -1,17 +1,40 @@
+/*
+ * Copyright (c) 2009-2012 Panxiaobo
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package p.axml.n;
 
 import static p.axml.n.AxmlVisitor.TYPE_STRING;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Stack;
 
-import p.axml.ResourceItems;
-import p.axml.StringItems;
 import p.axml.n.AxmlVisitor.NodeVisitor;
 
 import com.googlecode.dex2jar.reader.io.DataIn;
+import com.googlecode.dex2jar.reader.io.LeArrayDataIn;
 
+/**
+ * a class to read android axml
+ * 
+ * @author <a href="mailto:pxb1988@gmail.com">Panxiaobo</a>
+ * 
+ */
 public class AxmlReader {
+    static final int UTF8_FLAG = 0x00000100;
     static final int CHUNK_AXML_FILE = 0x00080003;
     static final int CHUNK_RESOURCEIDS = 0x00080180;
     static final int CHUNK_STRINGS = 0x001C0001;
@@ -20,8 +43,12 @@ public class AxmlReader {
     static final int CHUNK_XML_START_NAMESPACE = 0x00100100;
     static final int CHUNK_XML_START_TAG = 0x00100102;
     private StringItems stringItems = new StringItems();
-    private ResourceItems resourceIds = new ResourceItems();
+    private List<Integer> resourceIds = new ArrayList<Integer>();
     private DataIn in;
+
+    public AxmlReader(byte[] data) {
+        this(new LeArrayDataIn(data));
+    }
 
     public AxmlReader(DataIn in) {
         super();
@@ -115,7 +142,10 @@ public class AxmlReader {
                 stringItems.read(in, size);
                 break;
             case CHUNK_RESOURCEIDS:
-                resourceIds.read(in, size);
+                int count = size / 4 - 2;
+                for (int i = 0; i < count; i++) {
+                    resourceIds.add(in.readIntx());
+                }
                 break;
             default:
                 throw new RuntimeException();

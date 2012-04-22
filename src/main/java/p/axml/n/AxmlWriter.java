@@ -1,3 +1,18 @@
+/*
+ * Copyright (c) 2009-2012 Panxiaobo
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package p.axml.n;
 
 import java.io.ByteArrayOutputStream;
@@ -10,69 +25,19 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 
-import p.axml.Attribute;
-import p.axml.ResourceItems;
-import p.axml.StringItem;
-import p.axml.StringItems;
-
 import com.googlecode.dex2jar.reader.io.DataOut;
 import com.googlecode.dex2jar.reader.io.LeDataOut;
 
+/**
+ * a class to write android axml
+ * 
+ * @author <a href="mailto:pxb1988@gmail.com">Panxiaobo</a>
+ * 
+ */
 public class AxmlWriter extends AxmlVisitor {
-    private NodeImpl first;
-    Set<Ns> nses = new HashSet();
-
-    public AxmlWriter() {
-        super(null);
-    }
-
-    static class Ns {
-        @Override
-        public int hashCode() {
-            final int prime = 31;
-            int result = 1;
-            result = prime * result + ((prefix == null) ? 0 : prefix.hashCode());
-            result = prime * result + ((uri == null) ? 0 : uri.hashCode());
-            return result;
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj)
-                return true;
-            if (obj == null)
-                return false;
-            if (getClass() != obj.getClass())
-                return false;
-            Ns other = (Ns) obj;
-            if (prefix == null) {
-                if (other.prefix != null)
-                    return false;
-            } else if (!prefix.equals(other.prefix))
-                return false;
-            if (uri == null) {
-                if (other.uri != null)
-                    return false;
-            } else if (!uri.equals(other.uri))
-                return false;
-            return true;
-        }
-
-        public Ns(StringItem prefix, StringItem uri, int ln) {
-            super();
-            this.prefix = prefix;
-            this.uri = uri;
-            this.ln = ln;
-        }
-
-        StringItem prefix;
-        StringItem uri;
-        int ln;
-    }
-
     static class Attr {
-        public StringItem ns;
         public StringItem name;
+        public StringItem ns;
         public int resourceId;
         public int type;
         public Object value;
@@ -102,12 +67,12 @@ public class AxmlWriter extends AxmlVisitor {
     }
 
     static class NodeImpl extends NodeVisitor {
-        private StringItem ns;
-        private StringItem name;
-        private int line;
-        private String text;
-        private List<NodeImpl> children = new ArrayList();
         private Map<String, Attr> attrs = new HashMap();
+        private List<NodeImpl> children = new ArrayList();
+        private int line;
+        private StringItem name;
+        private StringItem ns;
+        private String text;
 
         public NodeImpl(String ns, String name) {
             super(null);
@@ -133,18 +98,12 @@ public class AxmlWriter extends AxmlVisitor {
         }
 
         @Override
-        public void text(String value) {
-            // TODO impl
-            this.text = value;
+        public void end() {
         }
 
         @Override
         public void line(int ln) {
             this.line = ln;
-        }
-
-        @Override
-        public void end() {
         }
 
         public int prepare(AxmlWriter axmlWriter) {
@@ -158,6 +117,12 @@ public class AxmlWriter extends AxmlVisitor {
                 size += child.prepare(axmlWriter);
             }
             return size;
+        }
+
+        @Override
+        public void text(String value) {
+            // TODO impl
+            this.text = value;
         }
 
         void write(DataOut out) throws IOException {
@@ -202,6 +167,77 @@ public class AxmlWriter extends AxmlVisitor {
         }
     }
 
+    static class Ns {
+        int ln;
+
+        StringItem prefix;
+
+        StringItem uri;
+
+        public Ns(StringItem prefix, StringItem uri, int ln) {
+            super();
+            this.prefix = prefix;
+            this.uri = uri;
+            this.ln = ln;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj)
+                return true;
+            if (obj == null)
+                return false;
+            if (getClass() != obj.getClass())
+                return false;
+            Ns other = (Ns) obj;
+            if (prefix == null) {
+                if (other.prefix != null)
+                    return false;
+            } else if (!prefix.equals(other.prefix))
+                return false;
+            if (uri == null) {
+                if (other.uri != null)
+                    return false;
+            } else if (!uri.equals(other.uri))
+                return false;
+            return true;
+        }
+
+        @Override
+        public int hashCode() {
+            final int prime = 31;
+            int result = 1;
+            result = prime * result + ((prefix == null) ? 0 : prefix.hashCode());
+            result = prime * result + ((uri == null) ? 0 : uri.hashCode());
+            return result;
+        }
+    }
+
+    private NodeImpl first;
+
+    private Set<Ns> nses = new HashSet<Ns>();
+
+    private List<StringItem> otherString = new ArrayList();
+
+    private Map<Integer, StringItem> resourceId2Str = new HashMap();
+
+    private List<Integer> resourceIds = new ArrayList<Integer>();
+
+    private List<StringItem> resourceString = new ArrayList();
+
+    private StringItems stringItems = new StringItems();
+
+    // TODO add style support
+    // private List<StringItem> styleItems = new ArrayList();
+
+    public AxmlWriter() {
+        super(null);
+    }
+
+    @Override
+    public void end() {
+    }
+
     @Override
     public NodeVisitor first(String ns, String name) {
         if (first != null) {
@@ -214,45 +250,6 @@ public class AxmlWriter extends AxmlVisitor {
     @Override
     public void ns(String prefix, String uri, int ln) {
         nses.add(new Ns(new StringItem(prefix), new StringItem(uri), ln));
-    }
-
-    @Override
-    public void end() {
-    }
-
-    public ResourceItems resourceIds = new ResourceItems();
-
-    private List<StringItem> otherString = new ArrayList();
-    private List<StringItem> resourceString = new ArrayList();
-    private Map<Integer, StringItem> resourceId2Str = new HashMap();
-
-    public StringItems stringItems = new StringItems();
-    List<StringItem> styleItems = new ArrayList();
-
-    public StringItem update(StringItem item) {
-        if (item == null)
-            return null;
-        int i = this.otherString.indexOf(item);
-        if (i < 0) {
-            StringItem copy = new StringItem(item.data);
-            this.otherString.add(copy);
-            return copy;
-        } else {
-            return this.otherString.get(i);
-        }
-    }
-
-    public StringItem updateWithResourceId(StringItem name, int resourceId) {
-        StringItem item = this.resourceId2Str.get(resourceId);
-        if (item != null) {
-            return item;
-        } else {
-            StringItem copy = new StringItem(name.data);
-            resourceIds.add(resourceId);
-            resourceString.add(copy);
-            resourceId2Str.put(resourceId, copy);
-            return copy;
-        }
     }
 
     private int prepare() throws IOException {
@@ -274,7 +271,7 @@ public class AxmlWriter extends AxmlVisitor {
             stringSize += 4 - stringSize % 4;
         }
         size += 8 + stringSize;
-        size += 8 + resourceIds.getSize();
+        size += 8 + resourceIds.size() * 4;
         return size;
     }
 
@@ -297,10 +294,12 @@ public class AxmlWriter extends AxmlVisitor {
         out.writeBytes(new byte[padding]);
 
         out.writeInt(AxmlReader.CHUNK_RESOURCEIDS);
-        out.writeInt(8 + this.resourceIds.getSize());
-        this.resourceIds.write(out);
+        out.writeInt(8 + this.resourceIds.size() * 4);
+        for (Integer i : resourceIds) {
+            out.writeInt(i);
+        }
 
-        Stack<Ns> stack = new Stack();
+        Stack<Ns> stack = new Stack<Ns>();
         for (Ns ns : this.nses) {
             stack.push(ns);
             out.writeInt(AxmlReader.CHUNK_XML_START_NAMESPACE);
@@ -323,5 +322,31 @@ public class AxmlWriter extends AxmlVisitor {
             out.writeInt(ns.uri.index);
         }
         return os.toByteArray();
+    }
+
+    StringItem update(StringItem item) {
+        if (item == null)
+            return null;
+        int i = this.otherString.indexOf(item);
+        if (i < 0) {
+            StringItem copy = new StringItem(item.data);
+            this.otherString.add(copy);
+            return copy;
+        } else {
+            return this.otherString.get(i);
+        }
+    }
+
+    StringItem updateWithResourceId(StringItem name, int resourceId) {
+        StringItem item = this.resourceId2Str.get(resourceId);
+        if (item != null) {
+            return item;
+        } else {
+            StringItem copy = new StringItem(name.data);
+            resourceIds.add(resourceId);
+            resourceString.add(copy);
+            resourceId2Str.put(resourceId, copy);
+            return copy;
+        }
     }
 }

@@ -13,36 +13,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.googlecode.dex2jar.reader.io;
+package p.axml.n;
 
-/**
- * 
- * @author Panxiaobo
- * @version $Rev: 3b20152caede $
- */
-public class OffsetedDataIn extends DataInWrapper {
+class StringItem {
+    public String data;
+    public int dataOffset;
+    public int index;
 
-    private int offset;
+    public StringItem(String data) {
+        super();
+        this.data = data;
+    }
 
-    public OffsetedDataIn(DataIn in, int offset) {
-        super(in);
-        super.move(offset);
-        this.offset = offset;
+    public StringItem() {
+        super();
     }
 
     @Override
-    public int getCurrentPosition() {
-        return super.getCurrentPosition() - offset;
+    public boolean equals(Object obj) {
+        StringItem b = (StringItem) obj;
+        return b.data.equals(data);
     }
 
     @Override
-    public void move(int absOffset) {
-        super.move(absOffset + offset);
+    public int hashCode() {
+        return data.hashCode();
     }
 
-    @Override
-    public void pushMove(int absOffset) {
-        super.pushMove(absOffset + offset);
+    public String toString() {
+        return String.format("S%04d %s", index, data);
     }
 
 }
