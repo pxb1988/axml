@@ -18,6 +18,8 @@ package pxb.android.axml;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -86,7 +88,7 @@ public class AxmlWriter extends AxmlVisitor {
             if (name == null) {
                 throw new RuntimeException("name can't be null");
             }
-            attrs.put((ns == null ? ".*&&" : ns) + "..." + name, new Attr(ns == null ? null : new StringItem(ns),
+            attrs.put((ns == null ? "zzz" : ns) + "." + name, new Attr(ns == null ? null : new StringItem(ns),
                     new StringItem(name), resourceId, type, type == TYPE_STRING ? new StringItem((String) value)
                             : value));
         }
@@ -107,10 +109,40 @@ public class AxmlWriter extends AxmlVisitor {
             this.line = ln;
         }
 
+        List<Attr> sortedAttrs() {
+            List<Attr> lAttrs = new ArrayList(attrs.values());
+            Collections.sort(lAttrs, new Comparator<Attr>() {
+
+                @Override
+                public int compare(Attr a, Attr b) {
+                    if (a.ns == null) {
+                        if (b.ns == null) {
+                            return b.name.data.compareTo(a.name.data);
+                        } else {
+                            return 1;
+                        }
+                    } else if (b.ns == null) {
+                        return -1;
+                    } else {
+                        int x = a.ns.data.compareTo(b.ns.data);
+                        if (x == 0) {
+                            x = a.resourceId - b.resourceId;
+                            if (x == 0) {
+                                return a.name.data.compareTo(b.name.data);
+                            }
+                        }
+                        return x;
+                    }
+                }
+            });
+            return lAttrs;
+        }
+
         public int prepare(AxmlWriter axmlWriter) {
             ns = axmlWriter.update(ns);
             name = axmlWriter.update(name);
-            for (Attr attr : attrs.values()) {
+
+            for (Attr attr : this.sortedAttrs()) {
                 attr.prepare(axmlWriter);
             }
             text = axmlWriter.update(text);
@@ -143,7 +175,7 @@ public class AxmlWriter extends AxmlVisitor {
             out.writeShort(0);
             out.writeShort(0);
             out.writeShort(0);
-            for (Attr attr : attrs.values()) {
+            for (Attr attr : this.sortedAttrs()) {
                 out.writeInt(attr.ns == null ? -1 : attr.ns.index);
                 out.writeInt(attr.name.index);
                 out.writeInt(attr.value instanceof StringItem ? ((StringItem) attr.value).index : -1);
