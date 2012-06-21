@@ -144,7 +144,8 @@ public class AxmlReader {
 			case CHUNK_XML_END_TAG: {
 				in.skip(size - 8);
 				tos.end();
-				tos = nvs.pop();
+				nvs.pop();
+				tos = nvs.peek();
 			}
 				break;
 			case CHUNK_XML_START_NAMESPACE:
