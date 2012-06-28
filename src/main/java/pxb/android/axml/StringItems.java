@@ -25,7 +25,43 @@ import java.util.TreeMap;
 import com.googlecode.dex2jar.reader.io.DataIn;
 import com.googlecode.dex2jar.reader.io.DataOut;
 
+@SuppressWarnings("serial")
 class StringItems extends ArrayList<StringItem> {
+
+    byte[] stringData;
+
+    public int getSize() {
+        return 5 * 4 + this.size() * 4 + stringData.length + 0;// TODO
+    }
+
+    public void prepare() throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        int i = 0;
+        int offset = 0;
+        baos.reset();
+        Map<String, Integer> map = new HashMap<String, Integer>();
+        for (StringItem item : this) {
+            item.index = i++;
+            String stringData = item.data;
+            Integer of = map.get(stringData);
+            if (of != null) {
+                item.dataOffset = of;
+            } else {
+                item.dataOffset = offset;
+                map.put(stringData, offset);
+                int length = stringData.length();
+                byte[] data = stringData.getBytes("UTF-16LE");
+                baos.write(length);
+                baos.write(length >> 8);
+                baos.write(data);
+                baos.write(0);
+                baos.write(0);
+                offset += 4 + data.length;
+            }
+        }
+        // TODO
+        stringData = baos.toByteArray();
+    }
 
     public void read(DataIn in, int size) throws IOException {
         int trunkOffset = in.getCurrentPosition() - 4;
@@ -78,41 +114,6 @@ class StringItems extends ArrayList<StringItem> {
             item.data = stringMap.get(item.dataOffset);
             // System.out.println(item);
         }
-    }
-
-    byte[] stringData;
-
-    public void prepare() throws IOException {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        int i = 0;
-        int offset = 0;
-        baos.reset();
-        Map<String, Integer> map = new HashMap<String, Integer>();
-        for (StringItem item : this) {
-            item.index = i++;
-            String stringData = item.data;
-            Integer of = map.get(stringData);
-            if (of != null) {
-                item.dataOffset = of;
-            } else {
-                item.dataOffset = offset;
-                map.put(stringData, offset);
-                int length = stringData.length();
-                byte[] data = stringData.getBytes("UTF-16LE");
-                baos.write(length);
-                baos.write(length >> 8);
-                baos.write(data);
-                baos.write(0);
-                baos.write(0);
-                offset += 4 + data.length;
-            }
-        }
-        // TODO
-        stringData = baos.toByteArray();
-    }
-
-    public int getSize() {
-        return 5 * 4 + this.size() * 4 + stringData.length + 0;// TODO
     }
 
     public void write(DataOut out) throws IOException {

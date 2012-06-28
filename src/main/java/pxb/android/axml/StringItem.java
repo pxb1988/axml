@@ -20,13 +20,13 @@ class StringItem {
     public int dataOffset;
     public int index;
 
+    public StringItem() {
+        super();
+    }
+
     public StringItem(String data) {
         super();
         this.data = data;
-    }
-
-    public StringItem() {
-        super();
     }
 
     @Override

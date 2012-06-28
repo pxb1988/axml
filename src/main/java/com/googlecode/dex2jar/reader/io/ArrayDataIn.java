@@ -33,16 +33,6 @@ public abstract class ArrayDataIn extends ByteArrayInputStream implements DataIn
     }
 
     @Override
-    public int readShortx() {
-        return (short) readUShortx();
-    }
-
-    @Override
-    public int readIntx() {
-        return readUIntx();
-    }
-
-    @Override
     public int getCurrentPosition() {
         return super.pos;
     }
@@ -69,6 +59,11 @@ public abstract class ArrayDataIn extends ByteArrayInputStream implements DataIn
     }
 
     @Override
+    public int readByte() {
+        return (byte) readUByte();
+    }
+
+    @Override
     public byte[] readBytes(int size) {
         byte[] data = new byte[size];
         try {
@@ -77,6 +72,11 @@ public abstract class ArrayDataIn extends ByteArrayInputStream implements DataIn
             throw new RuntimeException(e);
         }
         return data;
+    }
+
+    @Override
+    public int readIntx() {
+        return readUIntx();
     }
 
     @Override
@@ -98,6 +98,19 @@ public abstract class ArrayDataIn extends ByteArrayInputStream implements DataIn
     }
 
     @Override
+    public int readShortx() {
+        return (short) readUShortx();
+    }
+
+    @Override
+    public int readUByte() {
+        if (super.pos >= super.count) {
+            throw new RuntimeException("EOF");
+        }
+        return super.read();
+    }
+
+    @Override
     public long readULeb128() {
         long value = 0;
         int count = 0;
@@ -114,18 +127,5 @@ public abstract class ArrayDataIn extends ByteArrayInputStream implements DataIn
     @Override
     public void skip(int bytes) {
         super.skip(bytes);
-    }
-
-    @Override
-    public int readByte() {
-        return (byte) readUByte();
-    }
-
-    @Override
-    public int readUByte() {
-        if (super.pos >= super.count) {
-            throw new RuntimeException("EOF");
-        }
-        return super.read();
     }
 }

@@ -7,9 +7,9 @@ import java.io.InputStream;
 import org.junit.Test;
 
 import pxb.android.axml.AxmlReader;
+import pxb.android.axml.AxmlVisitor;
 import pxb.android.axml.AxmlWriter;
 import pxb.android.axml.DumpAdapter;
-import pxb.android.axml.EmptyAdapter;
 
 import com.googlecode.dex2jar.reader.io.LeArrayDataIn;
 
@@ -28,7 +28,7 @@ public class Test2 {
                 System.out.println("=== A ");
                 rd.accept(new DumpAdapter(wr));
                 System.out.println("=== B ");
-                new AxmlReader(new LeArrayDataIn(wr.toByteArray())).accept(new DumpAdapter(new EmptyAdapter()));
+                new AxmlReader(new LeArrayDataIn(wr.toByteArray())).accept(new DumpAdapter(new AxmlVisitor()));
             }
         }
     }

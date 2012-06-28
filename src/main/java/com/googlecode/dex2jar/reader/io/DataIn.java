@@ -59,20 +59,20 @@ public interface DataIn {
 
     int readIntx();
 
-    int readUIntx();
+    long readLeb128();
 
     int readShortx();
-
-    int readUShortx();
-
-    long readLeb128();
 
     /**
      * @return
      */
     int readUByte();
 
+    int readUIntx();
+
     long readULeb128();
+
+    int readUShortx();
 
     /**
      * @param i
