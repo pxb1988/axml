@@ -62,6 +62,8 @@ public class DumpAdapter extends AxmlVisitor {
             }
             if (obj instanceof String) {
                 System.out.print(String.format("=[%08x]\"%s\"", type, obj));
+            } else if (obj instanceof Boolean) {
+                System.out.print(String.format("=[%08x]\"%b\"", type, obj));
             } else {
                 System.out.print(String.format("=[%08x]%08x", type, obj));
             }

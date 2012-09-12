@@ -15,6 +15,7 @@
  */
 package pxb.android.axml;
 
+import static pxb.android.axml.AxmlVisitor.TYPE_INT_BOOLEAN;
 import static pxb.android.axml.AxmlVisitor.TYPE_STRING;
 
 import java.io.IOException;
@@ -127,7 +128,17 @@ public class AxmlReader {
                         int aValue = in.readIntx();
                         name = stringItems.get(nameIdx).data;
                         ns = nsIdx >= 0 ? stringItems.get(nsIdx).data : null;
-                        Object value = aValueType == TYPE_STRING ? stringItems.get(aValue).data : aValue;
+                        Object value = null;
+                        switch (aValueType) {
+                        case TYPE_STRING:
+                            value = stringItems.get(aValue).data;
+                            break;
+                        case TYPE_INT_BOOLEAN:
+                            value = aValue != 0;
+                            break;
+                        default:
+                            value = aValue;
+                        }
                         int resourceId = nameIdx < resourceIds.size() ? resourceIds.get(nameIdx) : -1;
                         tos.attr(ns, name, resourceId, aValueType, value);
                     }

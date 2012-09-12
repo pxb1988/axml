@@ -179,11 +179,13 @@ public class AxmlWriter extends AxmlVisitor {
                 out.writeInt(attr.name.index);
                 out.writeInt(attr.value instanceof StringItem ? ((StringItem) attr.value).index : -1);
                 out.writeInt((attr.type << 24) | 0x000008);
-                if (attr.value instanceof StringItem) {
+                Object v = attr.value;
+                if (v instanceof StringItem) {
                     out.writeInt(((StringItem) attr.value).index);
+                } else if (v instanceof Boolean) {
+                    out.writeInt(Boolean.TRUE.equals(v) ? -1 : 0);
                 } else {
                     out.writeInt((Integer) attr.value);
-
                 }
             }
 
