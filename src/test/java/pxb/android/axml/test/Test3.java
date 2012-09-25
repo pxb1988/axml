@@ -10,7 +10,7 @@ import pxb.android.axml.AxmlReader;
 import pxb.android.axml.AxmlVisitor;
 import pxb.android.axml.DumpAdapter;
 
-import com.googlecode.dex2jar.reader.io.LeArrayDataIn;
+import com.googlecode.dex2jar.reader.io.ArrayDataIn;
 
 public class Test3 {
     @Test
@@ -22,7 +22,7 @@ public class Test3 {
                 byte[] xml = new byte[is.available()];
                 is.read(xml);
                 is.close();
-                AxmlReader rd = new AxmlReader(new LeArrayDataIn(xml));
+                AxmlReader rd = new AxmlReader(ArrayDataIn.le(xml));
                 rd.accept(null);
             }
         }
@@ -37,7 +37,7 @@ public class Test3 {
                 byte[] xml = new byte[is.available()];
                 is.read(xml);
                 is.close();
-                AxmlReader rd = new AxmlReader(new LeArrayDataIn(xml));
+                AxmlReader rd = new AxmlReader(ArrayDataIn.le(xml));
                 rd.accept(new AxmlVisitor(new DumpAdapter()) {
 
                     @Override
@@ -58,7 +58,7 @@ public class Test3 {
                 byte[] xml = new byte[is.available()];
                 is.read(xml);
                 is.close();
-                AxmlReader rd = new AxmlReader(new LeArrayDataIn(xml));
+                AxmlReader rd = new AxmlReader(ArrayDataIn.le(xml));
                 rd.accept(new AxmlVisitor(new DumpAdapter()) {
 
                     @Override

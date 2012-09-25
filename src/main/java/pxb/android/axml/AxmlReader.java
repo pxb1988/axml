@@ -25,8 +25,8 @@ import java.util.Stack;
 
 import pxb.android.axml.AxmlVisitor.NodeVisitor;
 
+import com.googlecode.dex2jar.reader.io.ArrayDataIn;
 import com.googlecode.dex2jar.reader.io.DataIn;
-import com.googlecode.dex2jar.reader.io.LeArrayDataIn;
 
 /**
  * a class to read android axml
@@ -56,7 +56,7 @@ public class AxmlReader {
     private StringItems stringItems = new StringItems();
 
     public AxmlReader(byte[] data) {
-        this(new LeArrayDataIn(data));
+        this(ArrayDataIn.le(data));
     }
 
     public AxmlReader(DataIn in) {
