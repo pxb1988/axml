@@ -108,7 +108,7 @@ class StringItems extends ArrayList<StringItem> {
             }
         }
         if (stylesOffset != 0) {
-            throw new RuntimeException();
+            System.err.println("ignore style offset at 0x" + Integer.toHexString(trunkOffset));
         }
         for (StringItem item : this) {
             item.data = stringMap.get(item.dataOffset);

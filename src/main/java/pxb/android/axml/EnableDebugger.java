@@ -5,7 +5,6 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 
-
 public class EnableDebugger {
     // @Test
     // public void test() throws Exception {
@@ -14,7 +13,7 @@ public class EnableDebugger {
 
     public static void main(String... args) throws Exception {
         if (args.length < 2) {
-            System.err.println("test5 in out");
+            System.err.println("EnableDebugger in out");
             return;
         }
         new EnableDebugger().a(new File(args[0]), new File(args[1]));
@@ -40,8 +39,7 @@ public class EnableDebugger {
 
                             @Override
                             public void attr(String ns, String name, int resourceId, int type, Object obj) {
-                                if ("http://schemas.android.com/apk/res/android".equals(ns)
-                                        && "debuggable".equals(name)) {
+                                if (0x0101000f == resourceId) {
                                     return;
                                 }
                                 super.attr(ns, name, resourceId, type, obj);
@@ -51,7 +49,7 @@ public class EnableDebugger {
                             public void end() {
                                 // android:debuggable(0x0101000f)=(type 0x12)0xffffffff
                                 super.attr("http://schemas.android.com/apk/res/android", "debuggable", 0x0101000f,
-                                        0x12, 0xffffffff);
+                                        TYPE_INT_BOOLEAN, true);
                                 super.end();
                             }
                         };

@@ -257,11 +257,10 @@ public class AxmlWriter extends AxmlVisitor {
 
     @Override
     public void ns(String prefix, String uri, int ln) {
-        nses.put(uri, new Ns(new StringItem(prefix), new StringItem(uri), ln));
+        nses.put(uri, new Ns(prefix == null ? null : new StringItem(prefix), new StringItem(uri), ln));
     }
 
     private int prepare() throws IOException {
-
         int size = nses.size() * 24 * 2;
         for (NodeImpl first : firsts) {
             size += first.prepare(this);
@@ -271,8 +270,11 @@ public class AxmlWriter extends AxmlVisitor {
             for (Map.Entry<String, Ns> e : nses.entrySet()) {
                 Ns ns = e.getValue();
                 if (ns == null) {
-                    ns = new Ns(new StringItem(String.format("axml_auto_%02d", a++)), new StringItem(e.getKey()), 0);
+                    ns = new Ns(null, new StringItem(e.getKey()), 0);
                     e.setValue(ns);
+                }
+                if (ns.prefix == null) {
+                    ns.prefix = new StringItem(String.format("axml_auto_%02d", a++));
                 }
                 ns.prefix = update(ns.prefix);
                 ns.uri = update(ns.uri);

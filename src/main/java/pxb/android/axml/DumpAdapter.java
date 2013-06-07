@@ -103,6 +103,7 @@ public class DumpAdapter extends AxmlVisitor {
             for (int i = 0; i < deep + 1; i++) {
                 System.out.print("  ");
             }
+            System.out.print("T: ");
             System.out.println(value);
             super.text(ln, value);
         }
@@ -126,7 +127,7 @@ public class DumpAdapter extends AxmlVisitor {
     public NodeVisitor first(String ns, String name) {
         System.out.print("<");
         if (ns != null) {
-            System.out.println(nses.get(ns) + ":");
+            System.out.print(nses.get(ns) + ":");
         }
         System.out.println(name);
         NodeVisitor nv = super.first(ns, name);

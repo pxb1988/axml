@@ -21,4 +21,17 @@ public class Test4 {
         AxmlReader ar = new AxmlReader(aw.toByteArray());
         ar.accept(new DumpAdapter());
     }
+
+    @Test
+    public void test2() throws IOException {
+        AxmlWriter aw = new AxmlWriter();
+        aw.ns("efg", "http://abc.com", -1);
+        NodeVisitor nv = aw.first("http://abc.com", "abc");
+        nv.end();
+        nv = aw.first("http://efg.com", "efg");
+        nv.end();
+        aw.end();
+        AxmlReader ar = new AxmlReader(aw.toByteArray());
+        ar.accept(new DumpAdapter());
+    }
 }
