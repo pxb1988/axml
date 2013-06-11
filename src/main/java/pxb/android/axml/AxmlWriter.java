@@ -21,8 +21,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Stack;
 
 import com.googlecode.dex2jar.reader.io.DataOut;
@@ -64,10 +66,51 @@ public class AxmlWriter extends AxmlVisitor {
                 value = axmlWriter.update((StringItem) value);
             }
         }
+
+        @Override
+        public int hashCode() {
+            if (resourceId != 0 && resourceId != -1) {
+                return resourceId;
+            }
+            final int prime = 31;
+            int result = 1;
+            result = prime * result + ((name == null) ? 0 : name.hashCode());
+            result = prime * result + ((ns == null) ? 0 : ns.hashCode());
+            return result;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj)
+                return true;
+            if (obj == null)
+                return false;
+            if (getClass() != obj.getClass())
+                return false;
+            Attr other = (Attr) obj;
+            if (resourceId != other.resourceId)
+                return false;
+            if (resourceId != 0 && resourceId != -1) {
+                return true;
+            }
+            if (name == null) {
+                if (other.name != null)
+                    return false;
+            } else if (!name.equals(other.name))
+                return false;
+            if (ns == null) {
+                if (other.ns != null)
+                    return false;
+            } else if (!ns.equals(other.ns))
+                return false;
+
+            return true;
+        }
+
     }
 
     static class NodeImpl extends NodeVisitor {
-        private Map<String, Attr> attrs = new HashMap<String, Attr>();
+        private Set<Attr> attrs = new HashSet<Attr>();
         private List<NodeImpl> children = new ArrayList<NodeImpl>();
         private int line;
         private StringItem name;
@@ -86,9 +129,9 @@ public class AxmlWriter extends AxmlVisitor {
             if (name == null) {
                 throw new RuntimeException("name can't be null");
             }
-            attrs.put((ns == null ? "zzz" : ns) + "." + name, new Attr(ns == null ? null : new StringItem(ns),
-                    new StringItem(name), resourceId, type, type == TYPE_STRING ? new StringItem((String) value)
-                            : value));
+            Attr a = new Attr(ns == null ? null : new StringItem(ns), new StringItem(name), resourceId, type,
+                    type == TYPE_STRING ? new StringItem((String) value) : value);
+            attrs.add(a);
         }
 
         @Override
@@ -127,7 +170,7 @@ public class AxmlWriter extends AxmlVisitor {
         }
 
         List<Attr> sortedAttrs() {
-            List<Attr> lAttrs = new ArrayList<Attr>(attrs.values());
+            List<Attr> lAttrs = new ArrayList<Attr>(attrs);
             Collections.sort(lAttrs, new Comparator<Attr>() {
 
                 @Override
@@ -233,7 +276,7 @@ public class AxmlWriter extends AxmlVisitor {
 
     private List<StringItem> otherString = new ArrayList<StringItem>();
 
-    private Map<Integer, StringItem> resourceId2Str = new HashMap<Integer, StringItem>();
+    private Map<String, StringItem> resourceId2Str = new HashMap<String, StringItem>();
 
     private List<Integer> resourceIds = new ArrayList<Integer>();
 
@@ -371,14 +414,15 @@ public class AxmlWriter extends AxmlVisitor {
     }
 
     StringItem updateWithResourceId(StringItem name, int resourceId) {
-        StringItem item = this.resourceId2Str.get(resourceId);
+        String key = name.data + resourceId;
+        StringItem item = this.resourceId2Str.get(key);
         if (item != null) {
             return item;
         } else {
             StringItem copy = new StringItem(name.data);
             resourceIds.add(resourceId);
             resourceString.add(copy);
-            resourceId2Str.put(resourceId, copy);
+            resourceId2Str.put(key, copy);
             return copy;
         }
     }

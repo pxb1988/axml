@@ -44,19 +44,22 @@ public class StripManifestAdapter extends AxmlVisitor {
     }
 
     public static class StripManifestNodeAdapter extends NodeVisitor {
+        boolean strip;
 
-        public StripManifestNodeAdapter() {
+        public StripManifestNodeAdapter(boolean strip) {
             super();
+            this.strip = strip;
         }
 
-        public StripManifestNodeAdapter(NodeVisitor nv) {
+        public StripManifestNodeAdapter(boolean strip, NodeVisitor nv) {
             super(nv);
+            this.strip = strip;
         }
 
         @Override
         public void attr(String ns, String name, int resourceId, int type, Object obj) {
-            if (resourceId != -1) {
-                super.attr("", "", resourceId, type, obj);
+            if (resourceId != -1 && this.strip) {
+                super.attr(ns, "", resourceId, type, obj);
             } else {
                 super.attr(ns, name, resourceId, type, obj);
             }
@@ -66,7 +69,11 @@ public class StripManifestAdapter extends AxmlVisitor {
         public NodeVisitor child(String ns, String name) {
             NodeVisitor nv = super.child(ns, name);
             if (nv != null) {
-                nv = new StripManifestNodeAdapter(nv);
+                if (name.equals("intent-filter")) {
+                    nv = new StripManifestNodeAdapter(false, nv);
+                } else {
+                    nv = new StripManifestNodeAdapter(this.strip, nv);
+                }
             }
             return nv;
         }
@@ -84,18 +91,14 @@ public class StripManifestAdapter extends AxmlVisitor {
     public NodeVisitor first(String ns, String name) {
         NodeVisitor nv = super.first(ns, name);
         if (nv != null) {
-            nv = new StripManifestNodeAdapter(nv);
+            nv = new StripManifestNodeAdapter(true, nv);
         }
         return nv;
     }
 
     @Override
     public void ns(String prefix, String uri, int ln) {
-        if (uri.equals(Android_NS)) {
-            return;
-        }
-        prefix = "";
-        super.ns(prefix, uri, ln);
+        super.ns("", uri, ln);
     }
 
 }
