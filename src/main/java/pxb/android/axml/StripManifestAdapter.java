@@ -58,8 +58,10 @@ public class StripManifestAdapter extends AxmlVisitor {
 
         @Override
         public void attr(String ns, String name, int resourceId, int type, Object obj) {
-            if (resourceId != -1 && this.strip) {
-                super.attr(ns, "", resourceId, type, obj);
+            if (resourceId != -1 && this.strip //
+                    && resourceId != 0x101021b // versionCode
+            ) {
+                super.attr("", "", resourceId, type, obj);
             } else {
                 super.attr(ns, name, resourceId, type, obj);
             }
