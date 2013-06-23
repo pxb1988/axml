@@ -64,7 +64,7 @@ class StringItems extends ArrayList<StringItem> {
     }
 
     public void read(DataIn in, int size) throws IOException {
-        int trunkOffset = in.getCurrentPosition() - 4;
+        int trunkOffset = in.getCurrentPosition() - 8;
         int stringCount = in.readIntx();
         int styleOffsetCount = in.readIntx();
         int flags = in.readIntx();
@@ -77,43 +77,40 @@ class StringItems extends ArrayList<StringItem> {
             this.add(stringItem);
         }
         Map<Integer, String> stringMap = new TreeMap();
-        if (styleOffsetCount != 0) {
-            throw new RuntimeException();
-            // for (int i = 0; i < styleOffsetCount; i++) {
-            // StringItem stringItem = new StringItem();
-            // stringItem.index = i;
-            // stringItems.add(stringItem);
-            // }
-        }
-        int endOfStringData = stylesOffset == 0 ? size : stylesOffset;
-        int base = in.getCurrentPosition();
-        if (0 != (flags & AxmlReader.UTF8_FLAG)) {
-            for (int p = base; p < endOfStringData; p = in.getCurrentPosition()) {
-                int length = (int) in.readLeb128();
-                ByteArrayOutputStream bos = new ByteArrayOutputStream(length + 10);
-                for (int r = in.readByte(); r != 0; r = in.readByte()) {
-                    bos.write(r);
-                }
-                String value = new String(bos.toByteArray(), "UTF-8");
-                stringMap.put(p - base, value);
-            }
-        } else {
-            for (int p = base; p < endOfStringData; p = in.getCurrentPosition()) {
-                int length = in.readShortx();
-                byte[] data = in.readBytes(length * 2);
-                in.skip(2);
-                String value = new String(data, "UTF-16LE");
-                stringMap.put(p - base, value);
-                // System.out.println(String.format("%08x %s", p - base, value));
-            }
-        }
+        // if (styleOffsetCount != 0) {
+        // throw new RuntimeException();
+        // for (int i = 0; i < styleOffsetCount; i++) {
+        // StringItem stringItem = new StringItem();
+        // stringItem.index = i;
+        // stringItems.add(stringItem);
+        // }
+        // }
         if (stylesOffset != 0) {
             System.err.println("ignore style offset at 0x" + Integer.toHexString(trunkOffset));
         }
+        int base = trunkOffset + stringDataOffset;
         for (StringItem item : this) {
-            item.data = stringMap.get(item.dataOffset);
-            // System.out.println(item);
+            String s = stringMap.get(item.dataOffset);
+            if (s == null) {
+                in.move(base + item.dataOffset);
+                if (0 != (flags & AxmlReader.UTF8_FLAG)) {
+                    int length = (int) in.readLeb128();
+                    ByteArrayOutputStream bos = new ByteArrayOutputStream(length + 10);
+                    for (int r = in.readByte(); r != 0; r = in.readByte()) {
+                        bos.write(r);
+                    }
+                    s = new String(bos.toByteArray(), "UTF-8");
+                } else {
+                    int length = in.readShortx();
+                    byte[] data = in.readBytes(length * 2);
+                    // in.skip(2);
+                    s = new String(data, "UTF-16LE");
+                }
+                stringMap.put(item.dataOffset, s);
+            }
+            item.data = s;
         }
+
     }
 
     public void write(DataOut out) throws IOException {

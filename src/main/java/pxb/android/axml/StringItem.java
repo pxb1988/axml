@@ -30,14 +30,28 @@ class StringItem {
     }
 
     @Override
-    public boolean equals(Object obj) {
-        StringItem b = (StringItem) obj;
-        return b.data.equals(data);
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ((data == null) ? 0 : data.hashCode());
+        return result;
     }
 
     @Override
-    public int hashCode() {
-        return data.hashCode();
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        StringItem other = (StringItem) obj;
+        if (data == null) {
+            if (other.data != null)
+                return false;
+        } else if (!data.equals(other.data))
+            return false;
+        return true;
     }
 
     public String toString() {
