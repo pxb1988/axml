@@ -13,35 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package pxb.android.axml;
+package pxb.android;
 
-/**
- * visitor to visit an axml
- * 
- * @author <a href="mailto:pxb1988@gmail.com">Panxiaobo</a>
- */
-public class AxmlVisitor extends NodeVisitor {
+public interface ResConst {
+    int RES_STRING_POOL_TYPE = 0x0001;
+    int RES_TABLE_TYPE = 0x0002;
+    int RES_TABLE_PACKAGE_TYPE = 0x0200;
+    int RES_TABLE_TYPE_SPEC_TYPE = 0x0202;
+    int RES_TABLE_TYPE_TYPE = 0x0201;
 
-    public AxmlVisitor() {
-        super();
-
-    }
-
-    public AxmlVisitor(NodeVisitor av) {
-        super(av);
-    }
-
-    /**
-     * create a ns
-     * 
-     * @param prefix
-     * @param uri
-     * @param ln
-     */
-    public void ns(String prefix, String uri, int ln) {
-        if (nv != null && nv instanceof AxmlVisitor) {
-            ((AxmlVisitor) nv).ns(prefix, uri, ln);
-        }
-    }
+    int RES_XML_TYPE = 0x0003;
+    int RES_XML_RESOURCE_MAP_TYPE = 0x0180;
+    int RES_XML_END_NAMESPACE_TYPE = 0x0101;
+    int RES_XML_END_ELEMENT_TYPE = 0x0103;
+    int RES_XML_START_NAMESPACE_TYPE = 0x0100;
+    int RES_XML_START_ELEMENT_TYPE = 0x0102;
+    int RES_XML_CDATA_TYPE = 0x0104;
 
 }
