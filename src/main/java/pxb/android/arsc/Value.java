@@ -13,35 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package pxb.android.axml;
+package pxb.android.arsc;
 
-/**
- * visitor to visit an axml
- * 
- * @author <a href="mailto:pxb1988@gmail.com">Panxiaobo</a>
- */
-public class AxmlVisitor extends NodeVisitor {
+public class Value {
+    public final int data;
+    public String raw;
+    public final int type;
 
-    public AxmlVisitor() {
+    public Value(int type, int data, String raw) {
         super();
-
+        this.type = type;
+        this.data = data;
+        this.raw = raw;
     }
 
-    public AxmlVisitor(NodeVisitor av) {
-        super(av);
-    }
-
-    /**
-     * create a ns
-     * 
-     * @param prefix
-     * @param uri
-     * @param ln
-     */
-    public void ns(String prefix, String uri, int ln) {
-        if (nv != null && nv instanceof AxmlVisitor) {
-            ((AxmlVisitor) nv).ns(prefix, uri, ln);
+    public String toString() {
+        if (type == 0x03) {
+            return raw;
         }
+        return String.format("{t=0x%02x d=0x%08x}", type, data);
     }
 
 }

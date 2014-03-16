@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009-2012 Panxiaobo
+ * Copyright (c) 2009-2013 Panxiaobo
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,120 +22,78 @@ import java.util.Map;
  * dump axml to stdout
  * 
  * @author <a href="mailto:pxb1988@gmail.com">Panxiaobo</a>
- * 
  */
 public class DumpAdapter extends AxmlVisitor {
-
-    /**
-     * dump a node to stdout
-     * 
-     * @author <a href="mailto:pxb1988@gmail.com">Panxiaobo</a>
-     * 
-     */
-    public static class DumpNodeAdapter extends NodeVisitor {
-        protected int deep;
-        protected Map<String, String> nses;
-
-        public DumpNodeAdapter(NodeVisitor nv) {
-            super(nv);
-            this.deep = 0;
-            this.nses = null;
-        }
-
-        public DumpNodeAdapter(NodeVisitor nv, int x, Map<String, String> nses) {
-            super(nv);
-            this.deep = x;
-            this.nses = nses;
-        }
-
-        @Override
-        public void attr(String ns, String name, int resourceId, int type, Object obj) {
-            for (int i = 0; i < deep; i++) {
-                System.out.print("  ");
-            }
-            if (ns != null) {
-                System.out.print(String.format("%s:", getPrefix(ns)));
-            }
-            System.out.print(name);
-            if (resourceId != -1) {
-                System.out.print(String.format("(%08x)", resourceId));
-            }
-            if (obj instanceof String) {
-                System.out.print(String.format("=[%08x]\"%s\"", type, obj));
-            } else if (obj instanceof Boolean) {
-                System.out.print(String.format("=[%08x]\"%b\"", type, obj));
-            } else {
-                System.out.print(String.format("=[%08x]%08x", type, obj));
-            }
-            System.out.println();
-            super.attr(ns, name, resourceId, type, obj);
-        }
-
-        @Override
-        public NodeVisitor child(String ns, String name) {
-            for (int i = 0; i < deep; i++) {
-                System.out.print("  ");
-            }
-            System.out.print("<");
-            if (ns != null) {
-                System.out.println(getPrefix(ns) + ":");
-            }
-            System.out.println(name);
-            NodeVisitor nv = super.child(ns, name);
-            if (nv != null) {
-                return new DumpNodeAdapter(nv, deep + 1, nses);
-            }
-            return null;
-        }
-
-        protected String getPrefix(String uri) {
-            if (nses != null) {
-                String prefix = nses.get(uri);
-                if (prefix != null) {
-                    return prefix;
-                }
-            }
-            return uri;
-        }
-
-        @Override
-        public void text(int ln, String value) {
-            for (int i = 0; i < deep + 1; i++) {
-                System.out.print("  ");
-            }
-            System.out.print("T: ");
-            System.out.println(value);
-            super.text(ln, value);
-        }
-    }
-
-    private Map<String, String> nses = new HashMap<String, String>();
+    protected int deep;
+    protected Map<String, String> nses;
 
     public DumpAdapter() {
+        this(null);
     }
 
-    public DumpAdapter(AxmlVisitor av) {
-        super(av);
+    public DumpAdapter(NodeVisitor nv) {
+        this(nv, 0, new HashMap<String, String>());
+    }
+
+    public DumpAdapter(NodeVisitor nv, int x, Map<String, String> nses) {
+        super(nv);
+        this.deep = x;
+        this.nses = nses;
     }
 
     @Override
-    public void end() {
-        super.end();
+    public void attr(String ns, String name, int resourceId, int type, Object obj) {
+        for (int i = 0; i < deep; i++) {
+            System.out.print("  ");
+        }
+        if (ns != null) {
+            System.out.print(String.format("%s:", getPrefix(ns)));
+        }
+        System.out.print(name);
+        if (resourceId != -1) {
+            System.out.print(String.format("(%08x)", resourceId));
+        }
+        if (obj instanceof String) {
+            System.out.print(String.format("=[%08x]\"%s\"", type, obj));
+        } else if (obj instanceof Boolean) {
+            System.out.print(String.format("=[%08x]\"%b\"", type, obj));
+        } else if (obj instanceof ValueWrapper) {
+            ValueWrapper w = (ValueWrapper) obj;
+            System.out.print(String.format("=[%08x]@%08x, raw: \"%s\"", type, w.ref, w.raw));
+        } else if (type == TYPE_REFERENCE) {
+            System.out.print(String.format("=[%08x]@%08x", type, obj));
+        } else {
+            System.out.print(String.format("=[%08x]%08x", type, obj));
+        }
+        System.out.println();
+        super.attr(ns, name, resourceId, type, obj);
     }
 
     @Override
-    public NodeVisitor first(String ns, String name) {
+    public NodeVisitor child(String ns, String name) {
+        for (int i = 0; i < deep; i++) {
+            System.out.print("  ");
+        }
         System.out.print("<");
         if (ns != null) {
-            System.out.print(nses.get(ns) + ":");
+            System.out.print(getPrefix(ns) + ":");
         }
         System.out.println(name);
-        NodeVisitor nv = super.first(ns, name);
+        NodeVisitor nv = super.child(ns, name);
         if (nv != null) {
-            DumpNodeAdapter x = new DumpNodeAdapter(nv, 1, nses);
-            return x;
+            return new DumpAdapter(nv, deep + 1, nses);
         }
         return null;
+    }
+
+    protected String getPrefix(String uri) {
+        if (nses != null) {
+            String prefix = nses.get(uri);
+            if (prefix != null) {
+                return prefix;
+            }
+        }
+        return uri;
     }
 
     @Override
@@ -143,6 +101,16 @@ public class DumpAdapter extends AxmlVisitor {
         System.out.println(prefix + "=" + uri);
         this.nses.put(uri, prefix);
         super.ns(prefix, uri, ln);
+    }
+
+    @Override
+    public void text(int ln, String value) {
+        for (int i = 0; i < deep + 1; i++) {
+            System.out.print("  ");
+        }
+        System.out.print("T: ");
+        System.out.println(value);
+        super.text(ln, value);
     }
 
 }

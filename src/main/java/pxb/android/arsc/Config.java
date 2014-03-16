@@ -13,35 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package pxb.android.axml;
+package pxb.android.arsc;
 
-/**
- * visitor to visit an axml
- * 
- * @author <a href="mailto:pxb1988@gmail.com">Panxiaobo</a>
- */
-public class AxmlVisitor extends NodeVisitor {
+import java.util.Map;
+import java.util.TreeMap;
 
-    public AxmlVisitor() {
+public class Config {
+    public final int entryCount;
+    public final byte[] id;
+    public Map<Integer, ResEntry> resources = new TreeMap<Integer, ResEntry>();
+    /* package */int wChunkSize;
+    /* package */int wEntryStart;
+    /* package */int wPosition;
+
+    public Config(byte[] id, int entryCount) {
         super();
-
+        this.id = id;
+        this.entryCount = entryCount;
     }
-
-    public AxmlVisitor(NodeVisitor av) {
-        super(av);
-    }
-
-    /**
-     * create a ns
-     * 
-     * @param prefix
-     * @param uri
-     * @param ln
-     */
-    public void ns(String prefix, String uri, int ln) {
-        if (nv != null && nv instanceof AxmlVisitor) {
-            ((AxmlVisitor) nv).ns(prefix, uri, ln);
-        }
-    }
-
 }

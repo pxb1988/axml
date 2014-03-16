@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009-2012 Panxiaobo
+ * Copyright (c) 2009-2013 Panxiaobo
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,42 +15,81 @@
  */
 package pxb.android.axml;
 
-import java.io.ByteArrayOutputStream;
+import static pxb.android.axml.AxmlParser.RES_XML_TYPE;
+import static pxb.android.axml.AxmlParser.RES_XML_RESOURCE_MAP_TYPE;
+import static pxb.android.axml.AxmlParser.RES_STRING_POOL_TYPE;
+import static pxb.android.axml.AxmlParser.RES_XML_END_NAMESPACE_TYPE;
+import static pxb.android.axml.AxmlParser.RES_XML_END_ELEMENT_TYPE;
+import static pxb.android.axml.AxmlParser.RES_XML_START_NAMESPACE_TYPE;
+import static pxb.android.axml.AxmlParser.RES_XML_START_ELEMENT_TYPE;
+import static pxb.android.axml.AxmlParser.RES_XML_CDATA_TYPE;
+
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
+import java.util.TreeSet;
 
-import com.googlecode.dex2jar.reader.io.DataOut;
-import com.googlecode.dex2jar.reader.io.LeDataOut;
+import pxb.android.StringItem;
+import pxb.android.StringItems;
 
 /**
  * a class to write android axml
  * 
  * @author <a href="mailto:pxb1988@gmail.com">Panxiaobo</a>
- * 
  */
 public class AxmlWriter extends AxmlVisitor {
+    static final Comparator<Attr> ATTR_CMP = new Comparator<Attr>() {
+
+        @Override
+        public int compare(Attr a, Attr b) {
+            int x = a.resourceId - b.resourceId;
+            if (x == 0) {
+                x = a.name.data.compareTo(b.name.data);
+                if (x == 0) {
+                    boolean aNsIsnull = a.ns == null;
+                    boolean bNsIsnull = b.ns == null;
+                    if (aNsIsnull) {
+                        if (bNsIsnull) {
+                            x = 0;
+                        } else {
+                            x = -1;
+                        }
+                    } else {
+                        if (bNsIsnull) {
+                            x = 1;
+                        } else {
+                            x = a.ns.data.compareTo(b.ns.data);
+                        }
+                    }
+
+                }
+            }
+            return x;
+        }
+    };
+
     static class Attr {
+
+        public int index;
         public StringItem name;
         public StringItem ns;
         public int resourceId;
         public int type;
         public Object value;
+        public StringItem raw;
 
-        public Attr(StringItem ns, StringItem name, int resourceId, int type, Object value) {
+        public Attr(StringItem ns, StringItem name, int resourceId) {
             super();
             this.ns = ns;
             this.name = name;
             this.resourceId = resourceId;
-            this.type = type;
-            this.value = value;
         }
 
         public void prepare(AxmlWriter axmlWriter) {
@@ -65,58 +104,24 @@ public class AxmlWriter extends AxmlVisitor {
             if (value instanceof StringItem) {
                 value = axmlWriter.update((StringItem) value);
             }
-        }
-
-        @Override
-        public int hashCode() {
-            if (resourceId != 0 && resourceId != -1) {
-                return resourceId;
+            if (raw != null) {
+                raw = axmlWriter.update(raw);
             }
-            final int prime = 31;
-            int result = 1;
-            result = prime * result + ((name == null) ? 0 : name.hashCode());
-            result = prime * result + ((ns == null) ? 0 : ns.hashCode());
-            return result;
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj)
-                return true;
-            if (obj == null)
-                return false;
-            if (getClass() != obj.getClass())
-                return false;
-            Attr other = (Attr) obj;
-            if (resourceId != other.resourceId)
-                return false;
-            if (resourceId != 0 && resourceId != -1) {
-                return true;
-            }
-            if (name == null) {
-                if (other.name != null)
-                    return false;
-            } else if (!name.equals(other.name))
-                return false;
-            if (ns == null) {
-                if (other.ns != null)
-                    return false;
-            } else if (!ns.equals(other.ns))
-                return false;
-
-            return true;
         }
 
     }
 
     static class NodeImpl extends NodeVisitor {
-        private Set<Attr> attrs = new HashSet<Attr>();
+        private Set<Attr> attrs = new TreeSet<Attr>(ATTR_CMP);
         private List<NodeImpl> children = new ArrayList<NodeImpl>();
         private int line;
         private StringItem name;
         private StringItem ns;
         private StringItem text;
         private int textLineNumber;
+        Attr id;
+        Attr style;
+        Attr clz;
 
         public NodeImpl(String ns, String name) {
             super(null);
@@ -129,8 +134,36 @@ public class AxmlWriter extends AxmlVisitor {
             if (name == null) {
                 throw new RuntimeException("name can't be null");
             }
-            Attr a = new Attr(ns == null ? null : new StringItem(ns), new StringItem(name), resourceId, type,
-                    type == TYPE_STRING ? new StringItem((String) value) : value);
+            Attr a = new Attr(ns == null ? null : new StringItem(ns), new StringItem(name), resourceId);
+            a.type = type;
+
+            if (value instanceof ValueWrapper) {
+                ValueWrapper valueWrapper = (ValueWrapper) value;
+                if (valueWrapper.raw != null) {
+                    a.raw = new StringItem(valueWrapper.raw);
+                }
+                a.value = valueWrapper.ref;
+                switch (valueWrapper.type) {
+                case ValueWrapper.CLASS:
+                    clz = a;
+                    break;
+                case ValueWrapper.ID:
+                    id = a;
+                    break;
+                case ValueWrapper.STYLE:
+                    style = a;
+                    break;
+                }
+            } else if (type == TYPE_STRING) {
+                StringItem raw = new StringItem((String) value);
+                a.raw = raw;
+                a.value = raw;
+
+            } else {
+                a.raw = null;
+                a.value = value;
+            }
+
             attrs.add(a);
         }
 
@@ -154,12 +187,15 @@ public class AxmlWriter extends AxmlVisitor {
             ns = axmlWriter.updateNs(ns);
             name = axmlWriter.update(name);
 
-            for (Attr attr : this.sortedAttrs()) {
+            int attrIndex = 0;
+            for (Attr attr : attrs) {
+                attr.index = attrIndex++;
                 attr.prepare(axmlWriter);
             }
+
             text = axmlWriter.update(text);
             int size = 24 + 36 + attrs.size() * 20;// 24 for end tag,36+x*20 for
-                                                   // start tag
+            // start tag
             for (NodeImpl child : children) {
                 size += child.prepare(axmlWriter);
             }
@@ -169,77 +205,48 @@ public class AxmlWriter extends AxmlVisitor {
             return size;
         }
 
-        List<Attr> sortedAttrs() {
-            List<Attr> lAttrs = new ArrayList<Attr>(attrs);
-            Collections.sort(lAttrs, new Comparator<Attr>() {
-
-                @Override
-                public int compare(Attr a, Attr b) {
-                    if (a.ns == null) {
-                        if (b.ns == null) {
-                            return b.name.data.compareTo(a.name.data);
-                        } else {
-                            return 1;
-                        }
-                    } else if (b.ns == null) {
-                        return -1;
-                    } else {
-                        int x = a.ns.data.compareTo(b.ns.data);
-                        if (x == 0) {
-                            x = a.resourceId - b.resourceId;
-                            if (x == 0) {
-                                return a.name.data.compareTo(b.name.data);
-                            }
-                        }
-                        return x;
-                    }
-                }
-            });
-            return lAttrs;
-        }
-
         @Override
         public void text(int ln, String value) {
             this.text = new StringItem(value);
             this.textLineNumber = ln;
         }
 
-        void write(DataOut out) throws IOException {
+        void write(ByteBuffer out) throws IOException {
             // start tag
-            out.writeInt(AxmlReader.CHUNK_XML_START_TAG);
-            out.writeInt(36 + attrs.size() * 20);
-            out.writeInt(line);
-            out.writeInt(0xFFFFFFFF);
-            out.writeInt(ns != null ? this.ns.index : -1);
-            out.writeInt(name.index);
-            out.writeInt(0x00140014);// TODO
-            out.writeShort(this.attrs.size());
-            out.writeShort(0);
-            out.writeShort(0);
-            out.writeShort(0);
-            for (Attr attr : this.sortedAttrs()) {
-                out.writeInt(attr.ns == null ? -1 : attr.ns.index);
-                out.writeInt(attr.name.index);
-                out.writeInt(attr.value instanceof StringItem ? ((StringItem) attr.value).index : -1);
-                out.writeInt((attr.type << 24) | 0x000008);
+            out.putInt(RES_XML_START_ELEMENT_TYPE | (0x0010 << 16));
+            out.putInt(36 + attrs.size() * 20);
+            out.putInt(line);
+            out.putInt(0xFFFFFFFF);
+            out.putInt(ns != null ? this.ns.index : -1);
+            out.putInt(name.index);
+            out.putInt(0x00140014);// TODO
+            out.putShort((short) this.attrs.size());
+            out.putShort((short) (id == null ? 0 : id.index + 1));
+            out.putShort((short) (clz == null ? 0 : clz.index + 1));
+            out.putShort((short) (style == null ? 0 : style.index + 1));
+            for (Attr attr : attrs) {
+                out.putInt(attr.ns == null ? -1 : attr.ns.index);
+                out.putInt(attr.name.index);
+                out.putInt(attr.raw != null ? attr.raw.index : -1);
+                out.putInt((attr.type << 24) | 0x000008);
                 Object v = attr.value;
                 if (v instanceof StringItem) {
-                    out.writeInt(((StringItem) attr.value).index);
+                    out.putInt(((StringItem) attr.value).index);
                 } else if (v instanceof Boolean) {
-                    out.writeInt(Boolean.TRUE.equals(v) ? -1 : 0);
+                    out.putInt(Boolean.TRUE.equals(v) ? -1 : 0);
                 } else {
-                    out.writeInt((Integer) attr.value);
+                    out.putInt((Integer) attr.value);
                 }
             }
 
             if (this.text != null) {
-                out.writeInt(AxmlReader.CHUNK_XML_TEXT);
-                out.writeInt(28);
-                out.writeInt(textLineNumber);
-                out.writeInt(0xFFFFFFFF);
-                out.writeInt(text.index);
-                out.writeInt(0x00000008);
-                out.writeInt(0x00000000);
+                out.putInt(RES_XML_CDATA_TYPE | (0x0010 << 16));
+                out.putInt(28);
+                out.putInt(textLineNumber);
+                out.putInt(0xFFFFFFFF);
+                out.putInt(text.index);
+                out.putInt(0x00000008);
+                out.putInt(0x00000000);
             }
 
             // children
@@ -248,12 +255,12 @@ public class AxmlWriter extends AxmlVisitor {
             }
 
             // end tag
-            out.writeInt(AxmlReader.CHUNK_XML_END_TAG);
-            out.writeInt(24);
-            out.writeInt(-1);
-            out.writeInt(0xFFFFFFFF);
-            out.writeInt(ns != null ? this.ns.index : -1);
-            out.writeInt(name.index);
+            out.putInt(RES_XML_END_ELEMENT_TYPE | (0x0010 << 16));
+            out.putInt(24);
+            out.putInt(-1);
+            out.putInt(0xFFFFFFFF);
+            out.putInt(ns != null ? this.ns.index : -1);
+            out.putInt(name.index);
         }
     }
 
@@ -288,14 +295,14 @@ public class AxmlWriter extends AxmlVisitor {
     // private List<StringItem> styleItems = new ArrayList();
 
     @Override
-    public void end() {
-    }
-
-    @Override
-    public NodeVisitor first(String ns, String name) {
+    public NodeVisitor child(String ns, String name) {
         NodeImpl first = new NodeImpl(ns, name);
         this.firsts.add(first);
         return first;
+    }
+
+    @Override
+    public void end() {
     }
 
     @Override
@@ -304,7 +311,8 @@ public class AxmlWriter extends AxmlVisitor {
     }
 
     private int prepare() throws IOException {
-        int size = nses.size() * 24 * 2;
+        int size = 0;
+
         for (NodeImpl first : firsts) {
             size += first.prepare(this);
         }
@@ -323,6 +331,9 @@ public class AxmlWriter extends AxmlVisitor {
                 ns.uri = update(ns.uri);
             }
         }
+
+        size += nses.size() * 24 * 2;
+
         this.stringItems.addAll(resourceString);
         resourceString = null;
         this.stringItems.addAll(otherString);
@@ -338,39 +349,39 @@ public class AxmlWriter extends AxmlVisitor {
     }
 
     public byte[] toByteArray() throws IOException {
-        ByteArrayOutputStream os = new ByteArrayOutputStream();
 
-        DataOut out = new LeDataOut(os);
-        int size = prepare();
-        out.writeInt(AxmlReader.CHUNK_AXML_FILE);
-        out.writeInt(size + 8);
+        int size = 8 + prepare();
+        ByteBuffer out = ByteBuffer.allocate(size).order(ByteOrder.LITTLE_ENDIAN);
+
+        out.putInt(RES_XML_TYPE | (0x0008 << 16));
+        out.putInt(size);
 
         int stringSize = this.stringItems.getSize();
         int padding = 0;
         if (stringSize % 4 != 0) {
             padding = 4 - stringSize % 4;
         }
-        out.writeInt(AxmlReader.CHUNK_STRINGS);
-        out.writeInt(stringSize + padding + 8);
+        out.putInt(RES_STRING_POOL_TYPE | (0x001C << 16));
+        out.putInt(stringSize + padding + 8);
         this.stringItems.write(out);
-        out.writeBytes(new byte[padding]);
+        out.put(new byte[padding]);
 
-        out.writeInt(AxmlReader.CHUNK_RESOURCEIDS);
-        out.writeInt(8 + this.resourceIds.size() * 4);
+        out.putInt(RES_XML_RESOURCE_MAP_TYPE | (0x0008 << 16));
+        out.putInt(8 + this.resourceIds.size() * 4);
         for (Integer i : resourceIds) {
-            out.writeInt(i);
+            out.putInt(i);
         }
 
         Stack<Ns> stack = new Stack<Ns>();
         for (Map.Entry<String, Ns> e : this.nses.entrySet()) {
             Ns ns = e.getValue();
             stack.push(ns);
-            out.writeInt(AxmlReader.CHUNK_XML_START_NAMESPACE);
-            out.writeInt(24);
-            out.writeInt(-1);
-            out.writeInt(0xFFFFFFFF);
-            out.writeInt(ns.prefix.index);
-            out.writeInt(ns.uri.index);
+            out.putInt(RES_XML_START_NAMESPACE_TYPE | (0x0010 << 16));
+            out.putInt(24);
+            out.putInt(-1);
+            out.putInt(0xFFFFFFFF);
+            out.putInt(ns.prefix.index);
+            out.putInt(ns.uri.index);
         }
 
         for (NodeImpl first : firsts) {
@@ -379,14 +390,14 @@ public class AxmlWriter extends AxmlVisitor {
 
         while (stack.size() > 0) {
             Ns ns = stack.pop();
-            out.writeInt(AxmlReader.CHUNK_XML_END_NAMESPACE);
-            out.writeInt(24);
-            out.writeInt(ns.ln);
-            out.writeInt(0xFFFFFFFF);
-            out.writeInt(ns.prefix.index);
-            out.writeInt(ns.uri.index);
+            out.putInt(RES_XML_END_NAMESPACE_TYPE | (0x0010 << 16));
+            out.putInt(24);
+            out.putInt(ns.ln);
+            out.putInt(0xFFFFFFFF);
+            out.putInt(ns.prefix.index);
+            out.putInt(ns.uri.index);
         }
-        return os.toByteArray();
+        return out.array();
     }
 
     StringItem update(StringItem item) {

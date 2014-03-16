@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009-2012 Panxiaobo
+ * Copyright (c) 2009-2013 Panxiaobo
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package pxb.android.axml;
+package pxb.android;
 
-class StringItem {
+public class StringItem {
     public String data;
     public int dataOffset;
     public int index;
@@ -27,14 +27,6 @@ class StringItem {
     public StringItem(String data) {
         super();
         this.data = data;
-    }
-
-    @Override
-    public int hashCode() {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result + ((data == null) ? 0 : data.hashCode());
-        return result;
     }
 
     @Override
@@ -52,6 +44,14 @@ class StringItem {
         } else if (!data.equals(other.data))
             return false;
         return true;
+    }
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ((data == null) ? 0 : data.hashCode());
+        return result;
     }
 
     public String toString() {

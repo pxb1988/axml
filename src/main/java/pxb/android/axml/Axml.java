@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009-2012 Panxiaobo
+ * Copyright (c) 2009-2013 Panxiaobo
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -118,18 +118,12 @@ public class Axml extends AxmlVisitor {
             ns.accept(visitor);
         }
         for (Node first : firsts) {
-            first.accept(new NodeVisitor(null) {
-
-                @Override
-                public NodeVisitor child(String ns, String name) {
-                    return visitor.first(ns, name);
-                }
-            });
+            first.accept(visitor);
         }
     }
 
     @Override
-    public NodeVisitor first(String ns, String name) {
+    public NodeVisitor child(String ns, String name) {
         Node node = new Node();
         node.name = name;
         node.ns = ns;
