@@ -19,6 +19,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 import pxb.android.axml.Util;
 
@@ -64,10 +66,23 @@ public class ArscDumper {
             System.err.println("asrc-dump file.arsc");
             return;
         }
-        byte[] data = Util.readFile(new File(args[0]));
+        String name = args[0];
+        byte[] data;
+        if (name.endsWith(".apk") || name.endsWith(".zip") || name.endsWith(".jar")) {
+            ZipFile zip = new ZipFile(name);
+            ZipEntry e = zip.getEntry("resources.arsc");
+            if (e == null) {
+                zip.close();
+                throw new RuntimeException("can't find resources.arsc in " + name);
+            } else {
+                data = Util.readIs(zip.getInputStream(e));
+                zip.close();
+            }
+        } else {
+            data = Util.readFile(new File(name));
+        }
         List<Pkg> pkgs = new ArscParser(data).parse();
 
         dump(pkgs);
-
     }
 }

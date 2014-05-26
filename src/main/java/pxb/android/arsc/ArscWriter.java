@@ -26,8 +26,9 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import pxb.android.ResConst;
+import pxb.android.StringBlock;
 import pxb.android.StringItem;
-import pxb.android.StringItems;
+import pxb.android.StyleSpan;
 import pxb.android.axml.Util;
 
 /**
@@ -40,14 +41,14 @@ import pxb.android.axml.Util;
 public class ArscWriter implements ResConst {
     private static class PkgCtx {
         Map<String, StringItem> keyNames = new HashMap<String, StringItem>();
-        StringItems keyNames0 = new StringItems();
+        StringBlock keyNames0 = new StringBlock();
         public int keyStringOff;
         int offset;
         Pkg pkg;
         int pkgSize;
         List<StringItem> typeNames = new ArrayList<StringItem>();
 
-        StringItems typeNames0 = new StringItems();
+        StringBlock typeNames0 = new StringBlock();
         int typeStringOff;
 
         public void addKeyName(String name) {
@@ -56,7 +57,7 @@ public class ArscWriter implements ResConst {
             }
             StringItem stringItem = new StringItem(name);
             keyNames.put(name, stringItem);
-            keyNames0.add(stringItem);
+            keyNames0.items.add(stringItem);
         }
 
         public void addTypeName(int id, String name) {
@@ -80,7 +81,7 @@ public class ArscWriter implements ResConst {
     private List<PkgCtx> ctxs = new ArrayList<PkgCtx>(5);
     private List<Pkg> pkgs;
     private Map<String, StringItem> strTable = new TreeMap<String, StringItem>();
-    private StringItems strTable0 = new StringItems();
+    private StringBlock strTable0 = new StringBlock();
 
     public ArscWriter(List<Pkg> pkgs) {
         this.pkgs = pkgs;
@@ -105,7 +106,7 @@ public class ArscWriter implements ResConst {
         }
         StringItem stringItem = new StringItem(str);
         strTable.put(str, stringItem);
-        strTable0.add(stringItem);
+        strTable0.items.add(stringItem);
     }
 
     private int count() {
@@ -212,7 +213,7 @@ public class ArscWriter implements ResConst {
                 }
             }
             ctx.keyNames0.prepare();
-            ctx.typeNames0.addAll(ctx.typeNames);
+            ctx.typeNames0.items.addAll(ctx.typeNames);
             ctx.typeNames0.prepare();
         }
         strTable0.prepare();
@@ -235,8 +236,20 @@ public class ArscWriter implements ResConst {
 
     private void travelValue(Value v) {
         if (v.raw != null) {
-            addString(v.raw);
+            if (v.styles != null && v.styles.size() > 0) { // has style
+                addStringWithStyle(v.raw, v.styles);
+            } else {
+                addString(v.raw);
+            }
         }
+    }
+
+    private void addStringWithStyle(String raw, List<StyleSpan> styles) {
+        for (StyleSpan styleSpan : styles) {
+            addString(styleSpan.name);
+        }
+        // FIXME add style
+        addString(raw);
     }
 
     private void write(ByteBuffer out, int size) throws IOException {
@@ -269,10 +282,10 @@ public class ArscWriter implements ResConst {
             out.position(p + 256);
 
             out.putInt(pctx.typeStringOff);
-            out.putInt(pctx.typeNames0.size());
+            out.putInt(pctx.typeNames0.items.size());
 
             out.putInt(pctx.keyStringOff);
-            out.putInt(pctx.keyNames0.size());
+            out.putInt(pctx.keyNames0.items.size());
 
             {
                 if (out.position() - basePosition != pctx.typeStringOff) {
@@ -391,7 +404,12 @@ public class ArscWriter implements ResConst {
         out.put((byte) 0);
         out.put((byte) value.type);
         if (value.type == ArscParser.TYPE_STRING) {
-            out.putInt(strTable.get(value.raw).index);
+            if (value.styles != null) {
+                // FIXME
+                out.putInt(strTable.get(value.raw).index);
+            } else {
+                out.putInt(strTable.get(value.raw).index);
+            }
         } else {
             out.putInt(value.data);
         }

@@ -20,32 +20,35 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @SuppressWarnings("serial")
-public class StringItems extends ArrayList<StringItem> {
+public class StringBlock {
     static final int UTF8_FLAG = 0x00000100;
 
+    public List<StringItem> items = new ArrayList<StringItem>();
+
     @SuppressWarnings("unused")
-    public static String[] read(ByteBuffer in) throws IOException {
+    public static Object[] read(ByteBuffer in) throws IOException {
         int trunkOffset = in.position() - 8;
         int stringCount = in.getInt();
-        int styleOffsetCount = in.getInt();
+        int styleCount = in.getInt();
         int flags = in.getInt();
         int stringDataOffset = in.getInt();
-        int stylesOffset = in.getInt();
-        int offsets[] = new int[stringCount];
+        int stylesDataOffset = in.getInt();
+        int strOffsets[] = new int[stringCount];
         String strings[] = new String[stringCount];
         for (int i = 0; i < stringCount; i++) {
-            offsets[i] = in.getInt();
+            strOffsets[i] = in.getInt();
         }
-
-        if (stylesOffset != 0) {
-            System.err.println("ignore style offset at 0x" + Integer.toHexString(trunkOffset));
+        int styleOffsets[] = new int[styleCount];
+        for (int i = 0; i < styleCount; i++) {
+            styleOffsets[i] = in.getInt();
         }
         int base = trunkOffset + stringDataOffset;
-        for (int i = 0; i < offsets.length; i++) {
-            in.position(base + offsets[i]);
+        for (int i = 0; i < strOffsets.length; i++) {
+            in.position(base + strOffsets[i]);
             String s;
 
             if (0 != (flags & UTF8_FLAG)) {
@@ -63,7 +66,30 @@ public class StringItems extends ArrayList<StringItem> {
             }
             strings[i] = s;
         }
-        return strings;
+        List<StyleSpan>[] styles = new List[styleCount];
+        base = trunkOffset + stylesDataOffset;
+        for (int i = 0; i < styleCount; i++) {
+            in.position(base + styleOffsets[i]);
+            List<StyleSpan> spans = null;
+            System.out.println(String.format("%d %s", i, strings[i]));
+            while (true) {
+                int id = in.getInt();
+                if (id == -1) {
+                    break;
+                }
+                if (spans == null) {
+                    spans = new ArrayList<StyleSpan>();
+                }
+                StyleSpan span = new StyleSpan();
+                spans.add(span);
+                span.name = strings[id];
+                span.start = in.getInt();
+                span.end = in.getInt();
+                System.out.println(String.format("%d  [%s %d ~ %d]", i, span.name, span.start, span.end));
+            }
+            styles[i] = spans;
+        }
+        return new Object[] { strings, styles };
     }
 
     static int u16length(ByteBuffer in) {
@@ -85,11 +111,11 @@ public class StringItems extends ArrayList<StringItem> {
     byte[] stringData;
 
     public int getSize() {
-        return 5 * 4 + this.size() * 4 + stringData.length + 0;// TODO
+        return 5 * 4 + items.size() * 4 + stringData.length + 0;// TODO
     }
 
     public void prepare() throws IOException {
-        for (StringItem s : this) {
+        for (StringItem s : items) {
             if (s.data.length() > 0x7FFF) {
                 useUTF8 = false;
             }
@@ -99,7 +125,7 @@ public class StringItems extends ArrayList<StringItem> {
         int offset = 0;
         baos.reset();
         Map<String, Integer> map = new HashMap<String, Integer>();
-        for (StringItem item : this) {
+        for (StringItem item : items) {
             item.index = i++;
             String stringData = item.data;
             Integer of = map.get(stringData);
@@ -152,15 +178,16 @@ public class StringItems extends ArrayList<StringItem> {
     private boolean useUTF8 = true;
 
     public void write(ByteBuffer out) throws IOException {
-        out.putInt(this.size());
+        out.putInt(items.size());
         out.putInt(0);// TODO style count
         out.putInt(useUTF8 ? UTF8_FLAG : 0);
-        out.putInt(7 * 4 + this.size() * 4);
+        out.putInt(7 * 4 + items.size() * 4);
         out.putInt(0);
-        for (StringItem item : this) {
+        for (StringItem item : items) {
             out.putInt(item.dataOffset);
         }
         out.put(stringData);
         // TODO
     }
+
 }

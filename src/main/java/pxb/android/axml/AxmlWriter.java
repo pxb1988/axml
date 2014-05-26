@@ -36,8 +36,8 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.TreeSet;
 
+import pxb.android.StringBlock;
 import pxb.android.StringItem;
-import pxb.android.StringItems;
 
 /**
  * a class to write android axml
@@ -289,7 +289,7 @@ public class AxmlWriter extends AxmlVisitor {
 
     private List<StringItem> resourceString = new ArrayList<StringItem>();
 
-    private StringItems stringItems = new StringItems();
+    private StringBlock stringItems = new StringBlock();
 
     // TODO add style support
     // private List<StringItem> styleItems = new ArrayList();
@@ -334,9 +334,9 @@ public class AxmlWriter extends AxmlVisitor {
 
         size += nses.size() * 24 * 2;
 
-        this.stringItems.addAll(resourceString);
+        this.stringItems.items.addAll(resourceString);
         resourceString = null;
-        this.stringItems.addAll(otherString);
+        this.stringItems.items.addAll(otherString);
         otherString = null;
         this.stringItems.prepare();
         int stringSize = this.stringItems.getSize();

@@ -24,7 +24,8 @@ import java.util.List;
 import java.util.Map;
 
 import pxb.android.ResConst;
-import pxb.android.StringItems;
+import pxb.android.StringBlock;
+import pxb.android.StyleSpan;
 
 /**
  * 
@@ -44,8 +45,7 @@ import pxb.android.StringItems;
  * <li>frameworks/base/libs/utils/ResourceTypes.cpp</li>
  * <li>frameworks/base/include/utils/ResourceTypes.h</li>
  * </ul>
- * and the cmd line <code>aapt d resources abc.apk</code> is also good for debug
- * (available in android sdk)
+ * and the cmd line <code>aapt d resources abc.apk</code> is also good for debug (available in android sdk)
  * 
  * <p>
  * Todos:
@@ -90,14 +90,13 @@ public class ArscParser implements ResConst {
     }
 
     /**
-     * If set, this resource has been declared public, so libraries are allowed
-     * to reference it.
+     * If set, this resource has been declared public, so libraries are allowed to reference it.
      */
     static final int ENGRY_FLAG_PUBLIC = 0x0002;
 
     /**
-     * If set, this is a complex entry, holding a set of name/value mappings. It
-     * is followed by an array of ResTable_map structures.
+     * If set, this is a complex entry, holding a set of name/value mappings. It is followed by an array of ResTable_map
+     * structures.
      */
     final static short ENTRY_FLAG_COMPLEX = 0x0001;
     public static final int TYPE_STRING = 0x03;
@@ -108,6 +107,7 @@ public class ArscParser implements ResConst {
     private Pkg pkg;
     private List<Pkg> pkgs = new ArrayList<Pkg>();
     private String[] strings;
+    List<StyleSpan>[] styles;
     private String[] typeNamesX;
 
     public ArscParser(byte[] b) {
@@ -127,7 +127,9 @@ public class ArscParser implements ResConst {
             Chunk chunk = new Chunk();
             switch (chunk.type) {
             case RES_STRING_POOL_TYPE:
-                strings = StringItems.read(in);
+                Object[] rs = StringBlock.read(in);
+                strings = (String[]) rs[0];
+                styles = (List<StyleSpan>[]) rs[1];
                 if (DEBUG) {
                     for (int i = 0; i < strings.length; i++) {
                         D("STR [%08x] %s", i, strings[i]);
@@ -251,7 +253,7 @@ public class ArscParser implements ResConst {
             if (chunk.type != RES_STRING_POOL_TYPE) {
                 throw new RuntimeException();
             }
-            typeNamesX = StringItems.read(in);
+            typeNamesX = (String[]) StringBlock.read(in)[0];
             in.position(chunk.location + chunk.size);
         }
         {
@@ -259,7 +261,7 @@ public class ArscParser implements ResConst {
             if (chunk.type != RES_STRING_POOL_TYPE) {
                 throw new RuntimeException();
             }
-            keyNamesX = StringItems.read(in);
+            keyNamesX = (String[]) StringBlock.read(in)[0];
             if (DEBUG) {
                 for (int i = 0; i < keyNamesX.length; i++) {
                     D("STR [%08x] %s", i, keyNamesX[i]);
@@ -336,9 +338,13 @@ public class ArscParser implements ResConst {
         int type = in.get() & 0xFF; // TypedValue.*
         int data = in.getInt();
         String raw = null;
+        List<StyleSpan> xstyles = null;
         if (type == TYPE_STRING) {
             raw = strings[data];
+            if (data < styles.length) {
+                xstyles = styles[data];
+            }
         }
-        return new Value(type, data, raw);
+        return new Value(type, data, raw, xstyles);
     }
 }

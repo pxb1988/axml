@@ -15,16 +15,22 @@
  */
 package pxb.android.arsc;
 
+import pxb.android.StyleSpan;
+
+import java.util.List;
+
 public class Value {
     public final int data;
     public String raw;
+    List<StyleSpan> styles;
     public final int type;
 
-    public Value(int type, int data, String raw) {
+    public Value(int type, int data, String raw, List<StyleSpan> styles) {
         super();
         this.type = type;
         this.data = data;
         this.raw = raw;
+        this.styles = styles;
     }
 
     public String toString() {

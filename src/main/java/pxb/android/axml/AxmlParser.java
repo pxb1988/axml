@@ -22,9 +22,11 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.IntBuffer;
+import java.util.List;
 
 import pxb.android.ResConst;
-import pxb.android.StringItems;
+import pxb.android.StringBlock;
+import pxb.android.StyleSpan;
 
 /**
  * a class to read android axml
@@ -63,6 +65,7 @@ public class AxmlParser implements ResConst {
     private int[] resourceIds;
 
     private String[] strings;
+    List<StyleSpan>[] styles;
 
     private int styleAttribute;
 
@@ -242,7 +245,9 @@ public class AxmlParser implements ResConst {
                 event = END_NS;
                 break;
             case RES_STRING_POOL_TYPE:
-                strings = StringItems.read(in);
+                Object[] rs = StringBlock.read(in);
+                strings = (String[]) rs[0];
+                styles = (List<StyleSpan>[]) rs[1];
                 in.position(p + size);
                 continue;
             case RES_XML_RESOURCE_MAP_TYPE:
