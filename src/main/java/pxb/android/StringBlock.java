@@ -17,20 +17,88 @@ package pxb.android;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+
+import static pxb.android.ResConst.RES_STRING_POOL_TYPE;
+import static pxb.android.ResConst.RES_XML_RESOURCE_MAP_TYPE;
 
 @SuppressWarnings("serial")
 public class StringBlock {
     static final int UTF8_FLAG = 0x00000100;
+    public int[] resourceIds;
+    public String strings[];
+    public List<StyleSpan>[] styles;
+    public int wItemCount = -1;
+    private byte[] styleData;
+    private byte[] stringData;
+    private Map<StyleItem, StyleItem> styleItemMap = new HashMap<StyleItem, StyleItem>();
+    private static final StyleSpan[] noSpan = new StyleSpan[0];
+    private Map<String, StringItem> wUniq = new HashMap<String, StringItem>();
+    private Map<String, StringItem> wResUniq = new HashMap<String, StringItem>();
+    private Map<StringItem, StringItem> wStyleUniq = new HashMap<StringItem, StringItem>();
+    private List<StringItem> wJoinItems = null;
+    private StyleItem key = new StyleItem();
+    private boolean useUTF8 = true;
+    private int wStyleCount = 0;
 
-    public List<StringItem> items = new ArrayList<StringItem>();
+    static int u16length(ByteBuffer in) {
+        int length = in.getShort() & 0xFFFF;
+        if (length > 0x7FFF) {
+            length = ((length & 0x7FFF) << 8) | (in.getShort() & 0xFFFF);
+        }
+        return length;
+    }
+
+    static int u8length(ByteBuffer in) {
+        int len = in.get() & 0xFF;
+        if ((len & 0x80) != 0) {
+            len = ((len & 0x7F) << 8) | (in.get() & 0xFF);
+        }
+        return len;
+    }
+
+    static void paddingTo4x(ByteArrayOutputStream bos) {
+        int stringSize = bos.size();
+
+        if (stringSize % 4 != 0) {
+            int padding = 4 - stringSize % 4;
+            for (int i = 0; i < padding; i++) {
+                bos.write(0);
+            }
+        }
+    }
+
+    static void writeLeInt(OutputStream os, int i) throws IOException {
+        os.write(i);
+        os.write(i >> 8);
+        os.write(i >> 16);
+        os.write(i >> 24);
+    }
+
+    public void of(List<String> strs) {
+        wJoinItems = new ArrayList<StringItem>(strs.size());
+        for (String str : strs) {
+            wJoinItems.add(new StringItem(str == null ? "?" : str));
+        }
+    }
+
+    public StringItem add(String key) {
+        if (key == null) {
+            throw new RuntimeException();
+        }
+        StringItem v = wUniq.get(key);
+        if (v == null) {
+            v = new StringItem(key);
+            wUniq.put(key, v);
+            return v;
+        }
+        return v;
+    }
 
     @SuppressWarnings("unused")
-    public static Object[] read(ByteBuffer in) throws IOException {
+    public void read(ByteBuffer in) throws IOException {
         int trunkOffset = in.position() - 8;
         int stringCount = in.getInt();
         int styleCount = in.getInt();
@@ -71,7 +139,7 @@ public class StringBlock {
         for (int i = 0; i < styleCount; i++) {
             in.position(base + styleOffsets[i]);
             List<StyleSpan> spans = null;
-            System.out.println(String.format("%d %s", i, strings[i]));
+            // System.out.println(String.format("%d %s", i, strings[i]));
             while (true) {
                 int id = in.getInt();
                 if (id == -1) {
@@ -80,44 +148,42 @@ public class StringBlock {
                 if (spans == null) {
                     spans = new ArrayList<StyleSpan>();
                 }
-                StyleSpan span = new StyleSpan();
+                StyleSpan span = new StyleSpan(strings[id], in.getInt(), in.getInt());
                 spans.add(span);
-                span.name = strings[id];
-                span.start = in.getInt();
-                span.end = in.getInt();
-                System.out.println(String.format("%d  [%s %d ~ %d]", i, span.name, span.start, span.end));
+                // System.out.println(String.format("%d  [%s %d ~ %d]", i, span.name, span.start, span.end));
             }
             styles[i] = spans;
         }
-        return new Object[] { strings, styles };
+        this.strings = strings;
+        this.styles = styles;
     }
 
-    static int u16length(ByteBuffer in) {
-        int length = in.getShort() & 0xFFFF;
-        if (length > 0x7FFF) {
-            length = ((length & 0x7FFF) << 8) | (in.getShort() & 0xFFFF);
+    /**
+     * with head and padding
+     * 
+     * @return
+     */
+    public int getStringPoolSectionSize() {
+        int size = 8 + 5 * 4 + wJoinItems.size() * 4 + stringData.length;
+        if (wStyleCount > 0) {
+            size += wStyleCount * 4 + styleData.length;
         }
-        return length;
-    }
-
-    static int u8length(ByteBuffer in) {
-        int len = in.get() & 0xFF;
-        if ((len & 0x80) != 0) {
-            len = ((len & 0x7F) << 8) | (in.get() & 0xFF);
-        }
-        return len;
-    }
-
-    byte[] stringData;
-
-    public int getSize() {
-        return 5 * 4 + items.size() * 4 + stringData.length + 0;// TODO
+        return size;
     }
 
     public void prepare() throws IOException {
-        for (StringItem s : items) {
-            if (s.data.length() > 0x7FFF) {
-                useUTF8 = false;
+        if (wJoinItems == null) {
+            wJoinItems = new ArrayList<StringItem>(wResUniq.size() + wUniq.size() + wStyleUniq.size());
+        }
+        wJoinItems.addAll(wResUniq.values());
+        wJoinItems.addAll(wStyleUniq.values());
+        wJoinItems.addAll(wUniq.values());
+        wItemCount = wUniq.size();
+        if (useUTF8) {
+            for (StringItem s : wJoinItems) {
+                if (s.data.length() > 0x7FFF) {
+                    useUTF8 = false;
+                }
             }
         }
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -125,7 +191,7 @@ public class StringBlock {
         int offset = 0;
         baos.reset();
         Map<String, Integer> map = new HashMap<String, Integer>();
-        for (StringItem item : items) {
+        for (StringItem item : wJoinItems) {
             item.index = i++;
             String stringData = item.data;
             Integer of = map.get(stringData);
@@ -171,23 +237,160 @@ public class StringBlock {
                 }
             }
         }
-        // TODO
+        paddingTo4x(baos);
+
         stringData = baos.toByteArray();
+        if (wStyleUniq.size() > 0) {
+            if (wResUniq.size() > 0) {
+                StyleItem it = new StyleItem();
+                it.styleSpans = noSpan;
+                styleItemMap.put(it, it);
+            }
+            for (StringItem item : wStyleUniq.values()) {
+                StyleItem it = new StyleItem();
+                it.styleSpans = item.styleSpans;
+                styleItemMap.put(it, it);
+            }
+            ByteArrayOutputStream styleOs = new ByteArrayOutputStream();
+            for (StyleItem si : styleItemMap.values()) {
+                si.offset = styleOs.size();
+                for (StyleSpan styleSpan : si.styleSpans) {
+                    writeLeInt(styleOs, wUniq.get(styleSpan.name).index);
+                    writeLeInt(styleOs, styleSpan.start);
+                    writeLeInt(styleOs, styleSpan.end);
+                }
+                writeLeInt(styleOs, -1);
+            }
+            writeLeInt(styleOs, -1);
+            writeLeInt(styleOs, -1);
+
+            paddingTo4x(styleOs);
+            styleData = styleOs.toByteArray();
+            wStyleCount = wStyleUniq.size() + wResUniq.size();
+        } else {
+            wStyleCount = 0;
+        }
     }
 
-    private boolean useUTF8 = true;
+    private void write(ByteBuffer out) throws IOException {
+        out.putInt(wJoinItems.size());
 
-    public void write(ByteBuffer out) throws IOException {
-        out.putInt(items.size());
-        out.putInt(0);// TODO style count
+        out.putInt(wStyleCount);// style count
         out.putInt(useUTF8 ? UTF8_FLAG : 0);
-        out.putInt(7 * 4 + items.size() * 4);
-        out.putInt(0);
-        for (StringItem item : items) {
+        int stringDataOffst = 7 * 4 + (wJoinItems.size() + wStyleCount) * 4;
+        out.putInt(stringDataOffst);
+        out.putInt(wStyleCount > 0 ? stringDataOffst + stringData.length : 0); // style data offset
+        for (StringItem item : wJoinItems) {
             out.putInt(item.dataOffset);
         }
+
+        if (wStyleCount > 0) {
+            if (wResUniq.size() > 0) {
+                key.styleSpans = noSpan;
+                StyleItem e = this.styleItemMap.get(key);
+                for (int i = 0; i < wResUniq.size(); i++) {
+                    out.putInt(e.offset);
+                }
+            }
+            for (StringItem stringItem : wStyleUniq.values()) {
+                key.styleSpans = stringItem.styleSpans;
+                StyleItem e = this.styleItemMap.get(key);
+                out.putInt(e.offset);
+            }
+        }
+
         out.put(stringData);
-        // TODO
+        if (wStyleCount > 0) {
+            out.put(styleData);
+        }
     }
 
+    public void readResourceIdTable(ByteBuffer in, int size) {
+        int count = size / 4 - 2;
+        resourceIds = new int[count];
+        for (int i = 0; i < count; i++) {
+            resourceIds[i] = in.getInt();
+        }
+    }
+
+    public StringItem add(String name, int resourceId) {
+        if (name == null) {
+            throw new RuntimeException();
+        }
+        if (resourceId == ResConst.NO_RESOURCE_ID) {
+            return add(name);
+        }
+        String key = name + "_" + resourceId;
+        StringItem it = wResUniq.get(key);
+        if (it == null) {
+            it = new StringItem(name, resourceId);
+            wResUniq.put(key, it);
+            return it;
+        } else {
+            return it;
+        }
+    }
+
+    public StringItem add(String name, List<StyleSpan> styleSpans) {
+        if (name == null) {
+            throw new RuntimeException();
+        }
+        if (styleSpans == null || styleSpans.size() == 0) {
+            return add(name);
+        }
+        StringItem key = new StringItem(name, styleSpans.toArray(new StyleSpan[styleSpans.size()]));
+        StringItem value = wStyleUniq.get(key);
+        if (value == null) {
+            value = key;
+            wStyleUniq.put(key, value);
+            for (StyleSpan styleSpan : styleSpans) {
+                add(styleSpan.name);
+            }
+        }
+        return value;
+    }
+
+    public void writeStringPoolSection(ByteBuffer out) throws IOException {
+        int stringSize = getStringPoolSectionSize();
+        out.putInt(RES_STRING_POOL_TYPE | (0x001C << 16));
+        out.putInt(stringSize);
+        write(out);
+    }
+
+    public void writeXmlResourceTableSection(ByteBuffer out) {
+        out.putInt(RES_XML_RESOURCE_MAP_TYPE | (0x0008 << 16));
+        out.putInt(8 + wResUniq.size() * 4);
+        for (StringItem item : wResUniq.values()) {
+            out.putInt(item.resourceId);
+        }
+    }
+
+    public int getXmlResourceTableSectionSize() {
+        return 8 + wResUniq.size() * 4;
+    }
+
+    static class StyleItem {
+        int offset;
+        StyleSpan[] styleSpans;
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o)
+                return true;
+            if (o == null || getClass() != o.getClass())
+                return false;
+
+            StyleItem styleItem = (StyleItem) o;
+
+            if (!Arrays.equals(styleSpans, styleItem.styleSpans))
+                return false;
+
+            return true;
+        }
+
+        @Override
+        public int hashCode() {
+            return Arrays.hashCode(styleSpans);
+        }
+    }
 }

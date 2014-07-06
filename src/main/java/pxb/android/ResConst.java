@@ -30,4 +30,5 @@ public interface ResConst {
     int RES_XML_START_ELEMENT_TYPE = 0x0102;
     int RES_XML_CDATA_TYPE = 0x0104;
 
+    int NO_RESOURCE_ID = -1;
 }

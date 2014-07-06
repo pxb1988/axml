@@ -62,10 +62,7 @@ public class AxmlParser implements ResConst {
 
     private int prefixIdx;
 
-    private int[] resourceIds;
-
-    private String[] strings;
-    List<StyleSpan>[] styles;
+    StringBlock stringBlock = new StringBlock();
 
     private int styleAttribute;
 
@@ -90,31 +87,31 @@ public class AxmlParser implements ResConst {
 
     public String getAttrName(int i) {
         int idx = attrs.get(i * 5 + 1);
-        return strings[idx];
+        return stringBlock.strings[idx];
 
     }
 
     public String getAttrNs(int i) {
         int idx = attrs.get(i * 5 + 0);
-        return idx >= 0 ? strings[idx] : null;
+        return idx >= 0 ? stringBlock.strings[idx] : null;
     }
 
     String getAttrRawString(int i) {
         int idx = attrs.get(i * 5 + 2);
         if (idx >= 0) {
-            return strings[idx];
+            return stringBlock.strings[idx];
         }
         return null;
     }
 
     public int getAttrResId(int i) {
-        if (resourceIds != null) {
+        if (stringBlock.resourceIds != null) {
             int idx = attrs.get(i * 5 + 1);
-            if (idx >= 0 && idx < resourceIds.length) {
-                return resourceIds[idx];
+            if (idx >= 0 && idx < stringBlock.resourceIds.length) {
+                return stringBlock.resourceIds[idx];
             }
         }
-        return -1;
+        return NO_RESOURCE_ID;
     }
 
     public int getAttrType(int i) {
@@ -134,7 +131,7 @@ public class AxmlParser implements ResConst {
 
         switch (getAttrType(i)) {
         case TYPE_STRING:
-            return strings[v];
+            return stringBlock.strings[v];
         case TYPE_INT_BOOLEAN:
             return v != 0;
         default:
@@ -147,19 +144,19 @@ public class AxmlParser implements ResConst {
     }
 
     public String getName() {
-        return strings[nameIdx];
+        return stringBlock.strings[nameIdx];
     }
 
     public String getNamespacePrefix() {
-        return strings[prefixIdx];
+        return stringBlock.strings[prefixIdx];
     }
 
     public String getNamespaceUri() {
-        return nsIdx >= 0 ? strings[nsIdx] : null;
+        return nsIdx >= 0 ? stringBlock.strings[nsIdx] : null;
     }
 
     public String getText() {
-        return strings[textIdx];
+        return stringBlock.strings[textIdx];
     }
 
     public int next() throws IOException {
@@ -245,17 +242,14 @@ public class AxmlParser implements ResConst {
                 event = END_NS;
                 break;
             case RES_STRING_POOL_TYPE:
-                Object[] rs = StringBlock.read(in);
-                strings = (String[]) rs[0];
-                styles = (List<StyleSpan>[]) rs[1];
+                stringBlock.read(in);
+                if (stringBlock.styles != null && stringBlock.styles.length > 0) {
+                    throw new RuntimeException("not support styles in axml");
+                }
                 in.position(p + size);
                 continue;
             case RES_XML_RESOURCE_MAP_TYPE:
-                int count = size / 4 - 2;
-                resourceIds = new int[count];
-                for (int i = 0; i < count; i++) {
-                    resourceIds[i] = in.getInt();
-                }
+                stringBlock.readResourceIdTable(in, size);
                 in.position(p + size);
                 continue;
             case RES_XML_CDATA_TYPE:

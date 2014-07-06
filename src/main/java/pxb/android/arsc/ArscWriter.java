@@ -46,7 +46,7 @@ public class ArscWriter implements ResConst {
         int offset;
         Pkg pkg;
         int pkgSize;
-        List<StringItem> typeNames = new ArrayList<StringItem>();
+        List<String> typeNames = new ArrayList<String>();
 
         StringBlock typeNames0 = new StringBlock();
         int typeStringOff;
@@ -55,22 +55,15 @@ public class ArscWriter implements ResConst {
             if (keyNames.containsKey(name)) {
                 return;
             }
-            StringItem stringItem = new StringItem(name);
+            StringItem stringItem = keyNames0.add(name);
             keyNames.put(name, stringItem);
-            keyNames0.items.add(stringItem);
         }
 
         public void addTypeName(int id, String name) {
             while (typeNames.size() <= id) {
                 typeNames.add(null);
             }
-
-            StringItem item = typeNames.get(id);
-            if (item == null) {
-                typeNames.set(id, new StringItem(name));
-            } else {
-                throw new RuntimeException();
-            }
+            typeNames.set(id, name);
         }
     }
 
@@ -80,7 +73,6 @@ public class ArscWriter implements ResConst {
 
     private List<PkgCtx> ctxs = new ArrayList<PkgCtx>(5);
     private List<Pkg> pkgs;
-    private Map<String, StringItem> strTable = new TreeMap<String, StringItem>();
     private StringBlock strTable0 = new StringBlock();
 
     public ArscWriter(List<Pkg> pkgs) {
@@ -101,12 +93,7 @@ public class ArscWriter implements ResConst {
     }
 
     private void addString(String str) {
-        if (strTable.containsKey(str)) {
-            return;
-        }
-        StringItem stringItem = new StringItem(str);
-        strTable.put(str, stringItem);
-        strTable0.items.add(stringItem);
+        strTable0.add(str);
     }
 
     private int count() {
@@ -114,13 +101,8 @@ public class ArscWriter implements ResConst {
         int size = 0;
 
         size += 8 + 4;// chunk, pkgcount
-        {
-            int stringSize = strTable0.getSize();
-            if (stringSize % 4 != 0) {
-                stringSize += 4 - stringSize % 4;
-            }
-            size += 8 + stringSize;// global strings
-        }
+        size += strTable0.getStringPoolSectionSize();
+
         for (PkgCtx ctx : ctxs) {
             ctx.offset = size;
             int pkgSize = 0;
@@ -128,23 +110,10 @@ public class ArscWriter implements ResConst {
             pkgSize += 4 * 4;
 
             ctx.typeStringOff = pkgSize;
-            {
-                int stringSize = ctx.typeNames0.getSize();
-                if (stringSize % 4 != 0) {
-                    stringSize += 4 - stringSize % 4;
-                }
-                pkgSize += 8 + stringSize;// type names
-            }
+            pkgSize += ctx.typeNames0.getStringPoolSectionSize();
 
             ctx.keyStringOff = pkgSize;
-
-            {
-                int stringSize = ctx.keyNames0.getSize();
-                if (stringSize % 4 != 0) {
-                    stringSize += 4 - stringSize % 4;
-                }
-                pkgSize += 8 + stringSize;// key names
-            }
+            pkgSize += ctx.keyNames0.getStringPoolSectionSize();
 
             for (Type type : ctx.pkg.types.values()) {
                 type.wPosition = size + pkgSize;
@@ -213,7 +182,7 @@ public class ArscWriter implements ResConst {
                 }
             }
             ctx.keyNames0.prepare();
-            ctx.typeNames0.items.addAll(ctx.typeNames);
+            ctx.typeNames0.of(ctx.typeNames);
             ctx.typeNames0.prepare();
         }
         strTable0.prepare();
@@ -248,8 +217,8 @@ public class ArscWriter implements ResConst {
         for (StyleSpan styleSpan : styles) {
             addString(styleSpan.name);
         }
-        // FIXME add style
-        addString(raw);
+        strTable0.add(raw, styles);
+
     }
 
     private void write(ByteBuffer out, int size) throws IOException {
@@ -257,17 +226,7 @@ public class ArscWriter implements ResConst {
         out.putInt(size);
         out.putInt(ctxs.size());
 
-        {
-            int stringSize = strTable0.getSize();
-            int padding = 0;
-            if (stringSize % 4 != 0) {
-                padding = 4 - stringSize % 4;
-            }
-            out.putInt(RES_STRING_POOL_TYPE | (0x001C << 16));
-            out.putInt(stringSize + padding + 8);
-            strTable0.write(out);
-            out.put(new byte[padding]);
-        }
+        strTable0.writeStringPoolSection(out);
 
         for (PkgCtx pctx : ctxs) {
             if (out.position() != pctx.offset) {
@@ -282,39 +241,23 @@ public class ArscWriter implements ResConst {
             out.position(p + 256);
 
             out.putInt(pctx.typeStringOff);
-            out.putInt(pctx.typeNames0.items.size());
+            out.putInt(pctx.typeNames0.wItemCount);
 
             out.putInt(pctx.keyStringOff);
-            out.putInt(pctx.keyNames0.items.size());
+            out.putInt(pctx.keyNames0.wItemCount);
 
             {
                 if (out.position() - basePosition != pctx.typeStringOff) {
                     throw new RuntimeException();
                 }
-                int stringSize = pctx.typeNames0.getSize();
-                int padding = 0;
-                if (stringSize % 4 != 0) {
-                    padding = 4 - stringSize % 4;
-                }
-                out.putInt(RES_STRING_POOL_TYPE | (0x001C << 16));
-                out.putInt(stringSize + padding + 8);
-                pctx.typeNames0.write(out);
-                out.put(new byte[padding]);
+                pctx.typeNames0.writeStringPoolSection(out);
             }
 
             {
                 if (out.position() - basePosition != pctx.keyStringOff) {
                     throw new RuntimeException();
                 }
-                int stringSize = pctx.keyNames0.getSize();
-                int padding = 0;
-                if (stringSize % 4 != 0) {
-                    padding = 4 - stringSize % 4;
-                }
-                out.putInt(RES_STRING_POOL_TYPE | (0x001C << 16));
-                out.putInt(stringSize + padding + 8);
-                pctx.keyNames0.write(out);
-                out.put(new byte[padding]);
+                pctx.keyNames0.writeStringPoolSection(out);
             }
 
             for (Type t : pctx.pkg.types.values()) {
@@ -405,10 +348,9 @@ public class ArscWriter implements ResConst {
         out.put((byte) value.type);
         if (value.type == ArscParser.TYPE_STRING) {
             if (value.styles != null) {
-                // FIXME
-                out.putInt(strTable.get(value.raw).index);
+                out.putInt(strTable0.add(value.raw, value.styles).index);
             } else {
-                out.putInt(strTable.get(value.raw).index);
+                out.putInt(strTable0.add(value.raw).index);
             }
         } else {
             out.putInt(value.data);

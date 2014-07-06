@@ -48,12 +48,6 @@ import pxb.android.StyleSpan;
  * and the cmd line <code>aapt d resources abc.apk</code> is also good for debug (available in android sdk)
  * 
  * <p>
- * Todos:
- * <ul>
- * TODO add support to read styled strings
- * </ul>
- * 
- * <p>
  * Thanks to the the following projects
  * <ul>
  * <li>android4me https://code.google.com/p/android4me/</li>
@@ -127,9 +121,10 @@ public class ArscParser implements ResConst {
             Chunk chunk = new Chunk();
             switch (chunk.type) {
             case RES_STRING_POOL_TYPE:
-                Object[] rs = StringBlock.read(in);
-                strings = (String[]) rs[0];
-                styles = (List<StyleSpan>[]) rs[1];
+                StringBlock sb=new StringBlock();
+                sb.read(in);
+                strings = sb.strings;
+                styles = sb.styles;
                 if (DEBUG) {
                     for (int i = 0; i < strings.length; i++) {
                         D("STR [%08x] %s", i, strings[i]);
@@ -253,7 +248,9 @@ public class ArscParser implements ResConst {
             if (chunk.type != RES_STRING_POOL_TYPE) {
                 throw new RuntimeException();
             }
-            typeNamesX = (String[]) StringBlock.read(in)[0];
+            StringBlock sb=new StringBlock();
+            sb.read(in);
+            typeNamesX = sb.strings;
             in.position(chunk.location + chunk.size);
         }
         {
@@ -261,7 +258,9 @@ public class ArscParser implements ResConst {
             if (chunk.type != RES_STRING_POOL_TYPE) {
                 throw new RuntimeException();
             }
-            keyNamesX = (String[]) StringBlock.read(in)[0];
+            StringBlock sb=new StringBlock();
+            sb.read(in);
+            keyNamesX = sb.strings;
             if (DEBUG) {
                 for (int i = 0; i < keyNamesX.length; i++) {
                     D("STR [%08x] %s", i, keyNamesX[i]);
