@@ -168,7 +168,11 @@ public class ArscWriter implements ResConst {
             for (Type type : pkg.types.values()) {
                 ctx.addTypeName(type.id - 1, type.name);
                 for (ResSpec spec : type.specs) {
-                    ctx.addKeyName(spec.name);
+                    if (spec.name == null) {
+                        ctx.addKeyName("?");
+                    } else {
+                        ctx.addKeyName(spec.name);
+                    }
                 }
                 for (Config config : type.configs) {
                     for (ResEntry e : config.resources.values()) {
@@ -324,7 +328,7 @@ public class ArscWriter implements ResConst {
                             flag &= ~ArscParser.ENTRY_FLAG_COMPLEX;
                         }
                         out.putShort((short) flag);
-                        out.putInt(pctx.keyNames.get(e.spec.name).index);
+                        out.putInt(pctx.keyNames.get(e.spec.name == null ? "?" : e.spec.name).index);
                         if (isBag) {
                             BagValue bag = (BagValue) e.value;
                             out.putInt(bag.parent);
