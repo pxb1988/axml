@@ -80,10 +80,7 @@ public class DumpAdapter extends AxmlVisitor {
         }
         System.out.println(name);
         NodeVisitor nv = super.child(ns, name);
-        if (nv != null) {
-            return new DumpAdapter(nv, deep + 1, nses);
-        }
-        return null;
+        return new DumpAdapter(nv, deep + 1, nses);
     }
 
     protected String getPrefix(String uri) {
