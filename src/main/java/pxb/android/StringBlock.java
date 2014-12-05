@@ -77,6 +77,13 @@ public class StringBlock {
         os.write(i >> 24);
     }
 
+    public StringBlock() {
+    }
+
+    public StringBlock(boolean useUTF8) {
+        this.useUTF8 = useUTF8;
+    }
+
     public void of(List<String> strs) {
         wJoinItems = new ArrayList<StringItem>(strs.size());
         for (String str : strs) {
@@ -169,6 +176,10 @@ public class StringBlock {
             size += wStyleCount * 4 + styleData.length;
         }
         return size;
+    }
+
+    public void setUseUTF8(boolean useUTF8) {
+        this.useUTF8 = useUTF8;
     }
 
     public void prepare() throws IOException {

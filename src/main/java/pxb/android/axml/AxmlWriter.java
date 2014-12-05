@@ -274,6 +274,14 @@ public class AxmlWriter extends AxmlVisitor {
         }
     }
 
+    public void useUTF8String() {
+        stringItems.setUseUTF8(true);
+    }
+
+    public void useUTF16String() {
+        stringItems.setUseUTF8(false);
+    }
+
     private int prepare() throws IOException {
         int size = 0;
 

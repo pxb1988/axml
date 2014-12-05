@@ -74,7 +74,7 @@ public class ArscWriter implements ResConst {
     private List<PkgCtx> ctxs = new ArrayList<PkgCtx>(5);
     private List<Pkg> pkgs;
     private StringBlock strTable0 = new StringBlock();
-
+    boolean useUTF8 = true;
     public ArscWriter(List<Pkg> pkgs) {
         this.pkgs = pkgs;
     }
@@ -185,12 +185,23 @@ public class ArscWriter implements ResConst {
                     }
                 }
             }
+            ctx.keyNames0.setUseUTF8(useUTF8);
             ctx.keyNames0.prepare();
             ctx.typeNames0.of(ctx.typeNames);
+            ctx.typeNames0.setUseUTF8(useUTF8);
             ctx.typeNames0.prepare();
         }
+        strTable0.setUseUTF8(useUTF8);
         strTable0.prepare();
         return ctxs;
+    }
+
+    public void useUTF8String() {
+        useUTF8 = true;
+    }
+
+    public void useUTF16String() {
+        useUTF8 = false;
     }
 
     public byte[] toByteArray() throws IOException {
