@@ -244,6 +244,9 @@ public class ArscParser implements ResConst {
         int specNameCount = in.getInt();
 
         {
+            if (in.getInt() != 0) {
+                in.position(in.position() - 4);
+            }
             Chunk chunk = new Chunk();
             if (chunk.type != RES_STRING_POOL_TYPE) {
                 throw new RuntimeException();
