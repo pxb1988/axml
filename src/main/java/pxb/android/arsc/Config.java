@@ -20,7 +20,7 @@ import java.util.TreeMap;
 
 public class Config {
     public final int entryCount;
-    public final byte[] id;
+    public byte[] id; // use ConfigDetail to modify
     public Map<Integer, ResEntry> resources = new TreeMap<Integer, ResEntry>();
     /* package */int wChunkSize;
     /* package */int wEntryStart;
