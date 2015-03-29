@@ -34,7 +34,7 @@ public class Pkg {
             if (name != null) {
                 if (type.name == null) {
                     type.name = name;
-                } else if (!name.endsWith(type.name)) {
+                } else if (!name.equals(type.name)) {
                     throw new RuntimeException();
                 }
                 if (type.specs.length != entrySize) {
