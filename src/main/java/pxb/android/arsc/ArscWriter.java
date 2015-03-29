@@ -15,6 +15,12 @@
  */
 package pxb.android.arsc;
 
+import pxb.android.ResConst;
+import pxb.android.StringBlock;
+import pxb.android.StringItem;
+import pxb.android.StyleSpan;
+import pxb.android.axml.Util;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -23,13 +29,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
-
-import pxb.android.ResConst;
-import pxb.android.StringBlock;
-import pxb.android.StringItem;
-import pxb.android.StyleSpan;
-import pxb.android.axml.Util;
 
 /**
  * Write pkgs to an arsc file
@@ -125,16 +124,13 @@ public class ArscWriter implements ResConst {
                     int configBasePostion = pkgSize;
                     pkgSize += 8 + 4 + 4 + 4; // trunk,id,entryCount,entriesStart
                     int size0 = config.id.length;
+                    if(size0 < 36){
+                        size0 = 36;
+                    }
                     if (size0 % 4 != 0) {
                         size0 += 4 - size0 % 4;
                     }
                     pkgSize += size0;// config
-
-                    if (pkgSize - configBasePostion > 0x0038) {
-                        throw new RuntimeException("config id  too big");
-                    } else {
-                        pkgSize = configBasePostion + 0x0038;
-                    }
 
                     pkgSize += 4 * config.entryCount;// offset
                     config.wEntryStart = pkgSize - configBasePostion;
@@ -236,9 +232,12 @@ public class ArscWriter implements ResConst {
 
     }
 
+    private void writeChunkHeader(ByteBuffer out, int type, int headerSize, int size) {
+        out.putShort((short) type).putShort((short) headerSize).putInt(size);
+    }
+
     private void write(ByteBuffer out, int size) throws IOException {
-        out.putInt(RES_TABLE_TYPE | (0x000c << 16));
-        out.putInt(size);
+        writeChunkHeader(out, RES_TABLE_TYPE, 0x000c, size);
         out.putInt(ctxs.size());
 
         strTable0.writeStringPoolSection(out);
@@ -248,8 +247,7 @@ public class ArscWriter implements ResConst {
                 throw new RuntimeException();
             }
             final int basePosition = out.position();
-            out.putInt(RES_TABLE_PACKAGE_TYPE | (0x011c << 16));
-            out.putInt(pctx.pkgSize);
+            writeChunkHeader(out, RES_TABLE_PACKAGE_TYPE, 0x011c, pctx.pkgSize);
             out.putInt(pctx.pkg.id);
             int p = out.position();
             out.put(pctx.pkg.name.getBytes("UTF-16LE"));
@@ -280,8 +278,8 @@ public class ArscWriter implements ResConst {
                 if (t.wPosition != out.position()) {
                     throw new RuntimeException();
                 }
-                out.putInt(RES_TABLE_TYPE_SPEC_TYPE | (0x0010 << 16));
-                out.putInt(4 * 4 + 4 * t.specs.length);// size
+
+                writeChunkHeader(out, RES_TABLE_TYPE_SPEC_TYPE, 0x0010, 4 * 4 + 4 * t.specs.length);
 
                 out.putInt(t.id);
                 out.putInt(t.specs.length);
@@ -295,24 +293,36 @@ public class ArscWriter implements ResConst {
                     if (config.wPosition != typeConfigPosition) {
                         throw new RuntimeException();
                     }
-                    out.putInt(RES_TABLE_TYPE_TYPE | (0x0038 << 16));
-                    out.putInt(config.wChunkSize);// size
+
+                   int  headSize = 8 + 4 + 4 + 4; // trunk,id,entryCount,entriesStart
+                    int size0 = config.id.length;
+                    if(size0 < 36){
+                        size0 = 36;
+                    }
+                    if (size0 % 4 != 0) {
+                        size0 += 4 - size0 % 4;
+                    }
+
+                    headSize += size0;// config
+
+                    writeChunkHeader(out, RES_TABLE_TYPE_TYPE, headSize, config.wChunkSize);
 
                     out.putInt(t.id);
                     out.putInt(t.specs.length);
                     out.putInt(config.wEntryStart);
 
                     D("[%08x]write config ids", out.position());
-                    out.put(config.id);
 
-                    int size0 = config.id.length;
-                    int padding = 0;
-                    if (size0 % 4 != 0) {
-                        padding = 4 - size0 % 4;
+                    if (config.id.length < 36) {
+                        out.putInt(size0);
+                        out.put(config.id, 4, config.id.length - 4);
+                    } else {
+                        out.put(config.id);
                     }
-                    out.put(new byte[padding]);
 
-                    out.position(typeConfigPosition + 0x0038);
+                    if (size0 > config.id.length) {
+                        out.put(new byte[size0 - config.id.length]);
+                    }
 
                     D("[%08x]write config entry offsets", out.position());
                     for (int i = 0; i < config.entryCount; i++) {

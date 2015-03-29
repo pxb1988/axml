@@ -16,6 +16,7 @@
 package pxb.android;
 
 public interface ResConst {
+    int RES_NULL_TYPE = 0x0000;
     int RES_STRING_POOL_TYPE = 0x0001;
     int RES_TABLE_TYPE = 0x0002;
     int RES_TABLE_PACKAGE_TYPE = 0x0200;
