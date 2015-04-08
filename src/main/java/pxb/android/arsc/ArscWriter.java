@@ -114,6 +114,10 @@ public class ArscWriter implements ResConst {
             ctx.keyStringOff = pkgSize;
             pkgSize += ctx.keyNames0.getStringPoolSectionSize();
 
+            int librarySize = ctx.pkg.libraries.size();
+            if (librarySize > 0) {
+                pkgSize += 12 + (4 + 256) * librarySize;
+            }
             for (Type type : ctx.pkg.types.values()) {
                 type.wPosition = size + pkgSize;
                 pkgSize += 8 + 4 + 4 + 4 * type.specs.length; // trunk,id,entryCount,
@@ -249,9 +253,11 @@ public class ArscWriter implements ResConst {
             final int basePosition = out.position();
             writeChunkHeader(out, RES_TABLE_PACKAGE_TYPE, 0x011c, pctx.pkgSize);
             out.putInt(pctx.pkg.id);
-            int p = out.position();
-            out.put(pctx.pkg.name.getBytes("UTF-16LE"));
-            out.position(p + 256);
+            {
+                int p = out.position();
+                out.put(pctx.pkg.name.getBytes("UTF-16LE"));
+                out.position(p + 256);
+            }
 
             out.putInt(pctx.typeStringOff);
             out.putInt(pctx.typeNames0.wItemCount);
@@ -273,6 +279,17 @@ public class ArscWriter implements ResConst {
                 pctx.keyNames0.writeStringPoolSection(out);
             }
 
+            int librarySize = pctx.pkg.libraries.size();
+            if (librarySize > 0) {
+                writeChunkHeader(out, RES_TABLE_LIBRARY_TYPE, 12, 12 + (4 + 256) * librarySize);
+                out.putInt(librarySize);
+                for (Map.Entry<String, Integer> e : pctx.pkg.libraries.entrySet()){
+                    out.putInt(e.getValue());
+                    int p = out.position();
+                    out.put(e.getKey().getBytes("UTF-16LE"));
+                    out.position(p + 256);
+                }
+            }
             for (Type t : pctx.pkg.types.values()) {
                 D("[%08x]write spec", out.position(), t.name);
                 if (t.wPosition != out.position()) {

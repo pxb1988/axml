@@ -22,6 +22,7 @@ public interface ResConst {
     int RES_TABLE_PACKAGE_TYPE = 0x0200;
     int RES_TABLE_TYPE_SPEC_TYPE = 0x0202;
     int RES_TABLE_TYPE_TYPE = 0x0201;
+    int RES_TABLE_LIBRARY_TYPE = 0x0203;
 
     int RES_XML_TYPE = 0x0003;
     int RES_XML_RESOURCE_MAP_TYPE = 0x0180;

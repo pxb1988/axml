@@ -234,21 +234,7 @@ public class ArscParser implements ResConst {
 
         // Actual name of this package, \0-terminated.
         // char16_t name[128];
-        String name;
-        {
-            int nextPisition = in.position() + 128 * 2;
-            StringBuilder sb = new StringBuilder(32);
-            for (int i = 0; i < 128; i++) {
-                int s = in.getShort();
-                if (s == 0) {
-                    break;
-                } else {
-                    sb.append((char) s);
-                }
-            }
-            name = sb.toString();
-            in.position(nextPisition);
-        }
+        String name = readFixedU16String(in);
 
         pkg = new Pkg(pid, name);
         pkgs.add(pkg);
@@ -415,6 +401,27 @@ public class ArscParser implements ResConst {
                 t.addConfig(config);
             }
                 break;
+            case RES_TABLE_LIBRARY_TYPE:
+                int libraryCount = in.getInt();
+                in.position(chunk.location + chunk.headSize);
+                for (int i = 0; i < libraryCount; i++) {
+/**
+ * A shared library package-id to package name entry.
+                    struct ResTable_lib_entry
+                    {
+                        // The package-id this shared library was assigned at build time.
+                        // We use a uint32 to keep the structure aligned on a uint32 boundary.
+                        uint32_t packageId;
+
+                        // The package name of the shared library. \0 terminated.
+                        char16_t packageName[128];
+                    };
+ */
+                    int packageId = in.getInt();
+                    String packageName = readFixedU16String(in);
+                    this.pkg.libraries.put(packageName, packageId);
+                }
+                break;
             case RES_NULL_TYPE:
             case RES_STRING_POOL_TYPE:
                 break;
@@ -423,6 +430,23 @@ public class ArscParser implements ResConst {
             }
             in.position(chunk.location + chunk.size);
         }
+    }
+
+    private String readFixedU16String(ByteBuffer in) {
+        String name;
+        int nextPisition = in.position() + 128 * 2;
+        StringBuilder sb = new StringBuilder(32);
+        for (int i = 0; i < 128; i++) {
+            int s = in.getShort();
+            if (s == 0) {
+                break;
+            } else {
+                sb.append((char) s);
+            }
+        }
+        name = sb.toString();
+        in.position(nextPisition);
+        return name;
     }
 
     private Object readValue() {

@@ -21,6 +21,7 @@ public class Pkg {
     public final int id;
     public String name;
     public TreeMap<Integer, Type> types = new TreeMap<Integer, Type>();
+    public TreeMap<String, Integer> libraries = new TreeMap<String, Integer>();
 
     public Pkg(int id, String name) {
         super();
