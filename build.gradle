@@ -2,7 +2,7 @@ apply plugin: 'java'
 apply plugin: 'maven'
 
 group = 'pxb.android'
-version = '2.1'
+version = '3.0'
 
 sourceCompatibility = 1.6
 targetCompatibility = 1.6

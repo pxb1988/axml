@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>pxb.android</groupId>
     <artifactId>axml</artifactId>
-    <version>2.1</version>
+    <version>3.0</version>
     <description>A tool to work with android axml and arsc file</description>
     <build>
         <plugins>
