@@ -15,15 +15,17 @@
  */
 package pxb.android.axml;
 
-import static pxb.android.axml.AxmlParser.*;
+import pxb.android.Res_value;
+import pxb.android.StringBlock;
+import pxb.android.StringItem;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.*;
 
-import pxb.android.StringBlock;
-import pxb.android.StringItem;
+import static pxb.android.ResChunk_header.writeChunkHeader;
+import static pxb.android.axml.AxmlParser.*;
 
 /**
  * a class to write android axml
@@ -66,8 +68,7 @@ public class AxmlWriter extends AxmlVisitor {
         public int index;
         public StringItem name;
         public StringItem ns;
-        public int type;
-        public Object value;
+        public Res_value value;
         public StringItem raw;
 
         public Attr(StringItem ns, StringItem name) {
@@ -84,6 +85,8 @@ public class AxmlWriter extends AxmlVisitor {
         private StringItem name;
         private StringItem ns;
         private StringItem text;
+        private Res_value styled;
+        private StringItem styledText;
         private int textLineNumber;
         Attr id;
         Attr style;
@@ -96,39 +99,31 @@ public class AxmlWriter extends AxmlVisitor {
         }
 
         @Override
-        public void attr(String ns, String name, int resourceId, int type, Object value) {
+        public void attr(String ns, String name, int resourceId, Res_value value) {
             if (name == null) {
                 throw new RuntimeException("name can't be null");
             }
 
             Attr a = new Attr(addNs(ns), stringItems.add(name, resourceId));
-            a.type = type;
+            a.value = value;
 
-            if (value instanceof ValueWrapper) {
-                ValueWrapper valueWrapper = (ValueWrapper) value;
-                if (valueWrapper.raw != null) {
-                    a.raw = stringItems.add(valueWrapper.raw);
-                }
-                a.value = valueWrapper.ref;
-                switch (valueWrapper.type) {
-                case ValueWrapper.CLASS:
+            if (value instanceof AttrRes_value) {
+                AttrRes_value valueWrapper = (AttrRes_value) value;
+
+                switch (valueWrapper.attrValueType) {
+                case AttrRes_value.CLASS:
                     clz = a;
                     break;
-                case ValueWrapper.ID:
+                case AttrRes_value.ID:
                     id = a;
                     break;
-                case ValueWrapper.STYLE:
+                case AttrRes_value.STYLE:
                     style = a;
                     break;
                 }
-            } else if (type == TYPE_STRING) {
-                StringItem raw = stringItems.add((String) value);
-                a.raw = raw;
-                a.value = raw;
-
-            } else {
-                a.raw = null;
-                a.value = value;
+            }
+            if (value.raw != null) {
+                a.raw = stringItems.add(value.raw, value.styles);
             }
 
             attrs.add(a);
@@ -171,15 +166,18 @@ public class AxmlWriter extends AxmlVisitor {
         }
 
         @Override
-        public void text(int ln, String value) {
+        public void text(int ln, String value, Res_value styled) {
             this.text = stringItems.add(value);
+            if (styled != null && styled.raw != null) {
+                this.styledText = stringItems.add(styled.raw, styled.styles);
+            }
+            this.styled = styled;
             this.textLineNumber = ln;
         }
 
         void write(ByteBuffer out) throws IOException {
             // start tag
-            out.putInt(RES_XML_START_ELEMENT_TYPE | (0x0010 << 16));
-            out.putInt(36 + attrs.size() * 20);
+            writeChunkHeader(out, RES_XML_START_ELEMENT_TYPE, 0x0010, 36 + attrs.size() * 20);
             out.putInt(line);
             out.putInt(0xFFFFFFFF);
             out.putInt(ns != null ? this.ns.index : -1);
@@ -193,25 +191,35 @@ public class AxmlWriter extends AxmlVisitor {
                 out.putInt(attr.ns == null ? -1 : attr.ns.index);
                 out.putInt(attr.name.index);
                 out.putInt(attr.raw != null ? attr.raw.index : -1);
-                out.putInt((attr.type << 24) | 0x000008);
-                Object v = attr.value;
-                if (v instanceof StringItem) {
-                    out.putInt(((StringItem) attr.value).index);
-                } else if (v instanceof Boolean) {
-                    out.putInt(Boolean.TRUE.equals(v) ? -1 : 0);
+
+                out.putShort((short) 8);
+                out.put((byte) 0);
+                out.put((byte) attr.value.type);
+                if (attr.raw != null) {
+                    out.putInt(attr.raw.index);
                 } else {
-                    out.putInt((Integer) attr.value);
+                    out.putInt(attr.value.data);
                 }
             }
 
             if (this.text != null) {
-                out.putInt(RES_XML_CDATA_TYPE | (0x0010 << 16));
-                out.putInt(28);
+                writeChunkHeader(out, RES_XML_CDATA_TYPE, 0x0010, 28);
                 out.putInt(textLineNumber);
                 out.putInt(0xFFFFFFFF);
                 out.putInt(text.index);
-                out.putInt(0x00000008);
-                out.putInt(0x00000000);
+                if (styled != null) {
+                    out.putShort((short) 8);
+                    out.put((byte) 0);
+                    out.put((byte) styled.type);
+                    if (styledText != null) {
+                        out.putInt(styledText.index);
+                    } else {
+                        out.putInt(styled.data);
+                    }
+                } else {
+                    out.putInt(0x00000008);
+                    out.putInt(0x00000000);
+                }
             }
 
             // children
@@ -220,8 +228,7 @@ public class AxmlWriter extends AxmlVisitor {
             }
 
             // end tag
-            out.putInt(RES_XML_END_ELEMENT_TYPE | (0x0010 << 16));
-            out.putInt(24);
+            writeChunkHeader(out, RES_XML_END_ELEMENT_TYPE, 0x0010, 24);
             out.putInt(-1);
             out.putInt(0xFFFFFFFF);
             out.putInt(ns != null ? this.ns.index : -1);
@@ -311,8 +318,7 @@ public class AxmlWriter extends AxmlVisitor {
         int size = 8 + prepare();
         ByteBuffer out = ByteBuffer.allocate(size).order(ByteOrder.LITTLE_ENDIAN);
 
-        out.putInt(RES_XML_TYPE | (0x0008 << 16));
-        out.putInt(size);
+        writeChunkHeader(out, RES_XML_TYPE, 0x0008, size);
 
         stringItems.writeStringPoolSection(out);
         stringItems.writeXmlResourceTableSection(out);
@@ -321,8 +327,7 @@ public class AxmlWriter extends AxmlVisitor {
         for (Map.Entry<String, Ns> e : this.nses.entrySet()) {
             Ns ns = e.getValue();
             stack.push(ns);
-            out.putInt(RES_XML_START_NAMESPACE_TYPE | (0x0010 << 16));
-            out.putInt(24);
+            writeChunkHeader(out, RES_XML_START_NAMESPACE_TYPE, 0x0010, 24);
             out.putInt(-1);
             out.putInt(0xFFFFFFFF);
             out.putInt(ns.prefix.index);
@@ -335,8 +340,7 @@ public class AxmlWriter extends AxmlVisitor {
 
         while (stack.size() > 0) {
             Ns ns = stack.pop();
-            out.putInt(RES_XML_END_NAMESPACE_TYPE | (0x0010 << 16));
-            out.putInt(24);
+            writeChunkHeader(out, RES_XML_END_NAMESPACE_TYPE, 0x0010, 24);
             out.putInt(ns.ln);
             out.putInt(0xFFFFFFFF);
             out.putInt(ns.prefix.index);
