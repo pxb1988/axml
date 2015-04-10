@@ -15,9 +15,7 @@
  */
 package pxb.android.arsc;
 
-import pxb.android.ResConst;
-import pxb.android.StringBlock;
-import pxb.android.StyleSpan;
+import pxb.android.*;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -59,42 +57,6 @@ import java.util.Map;
  * 
  */
 public class ArscParser implements ResConst {
-    /**
-     * Header that appears at the front of every data chunk in a resource.
-     */
-    /* pkg */class ResChunk_header {
-        /**
-         * Size of the chunk header (in bytes).  Adding this value to
-         * the address of the chunk allows you to find its associated data
-         * (if any).
-         * uint16_t headerSize;
-         */
-        public final int headSize;
-        public final int location;
-        /**
-         * Total size of this chunk (in bytes).  This is the chunkSize plus
-         * the size of any data associated with the chunk.  Adding this value
-         * to the chunk allows you to completely skip its contents (including
-         * any child chunks).  If this value is the same as chunkSize, there is
-         * no data associated with the chunk.
-         * uint32_t size;
-         */
-        public final int size;
-        /**
-         * Type identifier for this chunk.  The meaning of this value depends
-         * on the containing chunk.
-         * uint16_t type;
-         */
-        public final int type;
-
-        public ResChunk_header() {
-            location = in.position();
-            type = in.getShort() & 0xFFFF;
-            headSize = in.getShort() & 0xFFFF;
-            size = in.getInt();
-            D("[%08x]type: %04x, headsize: %04x, size:%08x", location, type, headSize, size);
-        }
-    }
 
     private static final boolean DEBUG = false;
 
@@ -117,7 +79,6 @@ public class ArscParser implements ResConst {
      * structures.
      */
     final static short ENTRY_FLAG_COMPLEX = 0x0001;
-    public static final int TYPE_STRING = 0x03;
 
     private ByteBuffer in;
     private String[] keyNamesX;
@@ -148,7 +109,7 @@ public class ArscParser implements ResConst {
         //   ResChunk_header header;
         //   uint32_t packageCount
         // }
-        ResChunk_header header = new ResChunk_header();
+        ResChunk_header header = new ResChunk_header(in);
         if (header.type != RES_TABLE_TYPE) {
             throw new RuntimeException();
         }
@@ -159,7 +120,7 @@ public class ArscParser implements ResConst {
         // make sure ResStringPool loaded before ResTable_package
         in.position(savePoint);
         while (in.hasRemaining()) {
-            ResChunk_header chunk = new ResChunk_header();
+            ResChunk_header chunk = new ResChunk_header(in);
             if (chunk.type == RES_STRING_POOL_TYPE) {
                 StringBlock sb = new StringBlock();
                 sb.read(in);
@@ -176,7 +137,7 @@ public class ArscParser implements ResConst {
         }
         in.position(savePoint);
         for (int pkgIdx = 0; pkgIdx < packageCount;) {
-            ResChunk_header chunk = new ResChunk_header();
+            ResChunk_header chunk = new ResChunk_header(in);
             switch (chunk.type) {
                 case RES_STRING_POOL_TYPE:
                     ;// values already read
@@ -202,7 +163,8 @@ public class ArscParser implements ResConst {
         int keyStr = in.getInt();
         spec.updateName(keyNamesX[keyStr]);
 
-        ResEntry resEntry = new ResEntry(flags, spec);
+        ResEntry resEntry = new ResEntry();
+        resEntry.isPublic = 0 != (flags & ENGRY_FLAG_PUBLIC);
 
         if (0 != (flags & ENTRY_FLAG_COMPLEX)) {
 
@@ -210,14 +172,14 @@ public class ArscParser implements ResConst {
             int count = in.getInt();
             BagValue bag = new BagValue(parent);
             for (int i = 0; i < count; i++) {
-                Map.Entry<Integer, Value> entry = new AbstractMap.SimpleEntry(in.getInt(), readValue());
+                Map.Entry<Integer, Res_value> entry = new AbstractMap.SimpleEntry(in.getInt(), readValue());
                 bag.map.add(entry);
             }
             resEntry.value = bag;
         } else {
             resEntry.value = readValue();
         }
-        config.resources.put(spec.id, resEntry);
+        config.resources.put(spec, resEntry);
     }
 
     /**
@@ -263,7 +225,7 @@ public class ArscParser implements ResConst {
                 E("typeStrings is 0");
             }else {
                 in.position(package_header.location+typeStrings);
-                ResChunk_header chunk = new ResChunk_header();
+                ResChunk_header chunk = new ResChunk_header(in);
                 if (chunk.type != RES_STRING_POOL_TYPE) {
                     throw new RuntimeException();
                 }
@@ -277,7 +239,7 @@ public class ArscParser implements ResConst {
                 E("keyStrings is 0");
             } else {
                 in.position(package_header.location + keyStrings);
-                ResChunk_header chunk = new ResChunk_header();
+                ResChunk_header chunk = new ResChunk_header(in);
                 if (chunk.type != RES_STRING_POOL_TYPE) {
                     throw new RuntimeException();
                 }
@@ -294,9 +256,8 @@ public class ArscParser implements ResConst {
 
         in.position(package_header.location + package_header.headSize);
         int end = package_header.location + package_header.size;
-        out:
         while (in.position() < end) {
-            ResChunk_header chunk = new ResChunk_header();
+            ResChunk_header chunk = new ResChunk_header(in);
             switch (chunk.type) {
             case RES_TABLE_TYPE_SPEC_TYPE: {
 
@@ -379,7 +340,7 @@ public class ArscParser implements ResConst {
                 byte[] data = new byte[size];
                 in.position(p);
                 in.get(data);
-                Config config = new Config(data, entryCount);
+                Config config = new Config(data);
 
                 in.position(chunk.location + chunk.headSize);
 
@@ -426,7 +387,7 @@ public class ArscParser implements ResConst {
             case RES_STRING_POOL_TYPE:
                 break;
             default:
-                break out;
+                break;
             }
             in.position(chunk.location + chunk.size);
         }
@@ -457,13 +418,13 @@ public class ArscParser implements ResConst {
         int data = in.getInt();
         String raw = null;
         List<StyleSpan> xstyles = null;
-        if (type == TYPE_STRING) {
+        if (type == Res_value.TYPE_STRING) {
             raw = strings[data];
             if (data < styles.length) {
                 xstyles = styles[data];
             }
         }
         in.position(pos + size1);
-        return new Value(type, data, raw, xstyles);
+        return new Res_value(type, data, raw, xstyles);
     }
 }
