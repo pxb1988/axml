@@ -115,10 +115,12 @@ public class Res_value {
                 return styles != null ? toXml() : raw;
             case TYPE_NULL:
                 return data == 0 ? "[undefined]" : "[empty]";
+            case TYPE_ATTRIBUTE:
+                return String.format("?0x%08x", data);
             case TYPE_INT_BOOLEAN:
                 return String.valueOf(data != 0);
             case TYPE_REFERENCE:
-                return String.format("@%08x", data);
+                return String.format("@0x%08x", data);
             case TYPE_FLOAT:
                 return String.valueOf(Float.intBitsToFloat(data));
             case TYPE_INT_COLOR_ARGB8:

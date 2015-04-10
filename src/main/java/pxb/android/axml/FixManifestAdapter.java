@@ -55,26 +55,26 @@ public class FixManifestAdapter extends AxmlVisitor {
     }
 
     @Override
-    public void attr(String ns, String name, int resourceId, Res_value obj) {
+    public void attr(String ns, String name, int resourceId, String raw, Res_value obj) {
         if (isEmpty(ns)) {
             ns = null;
         }
         if (resourceId == -1) {
-            super.attr(ns, name, resourceId, obj);
+            super.attr(ns, name, resourceId, raw, obj);
             return;
         }
         if (((resourceId >> 16) & 0xFFFF) != 0x0101) {
             // not an attr
             // clean up the resourceId
             System.err.printf("clean up none-attr resourceId %08x\n", resourceId);
-            super.attr(ns, name, -1, obj);
+            super.attr(ns, name, -1, raw, obj);
             return;
         }
         if ((resourceId & 0xFFFF) > R.AttrNames.NAMES.length) {
             // too huge for now api22, 2015-04-10
             // clean up the resourceId
             System.err.printf("clean up too-huge-attr resourceId %08x\n", resourceId);
-            super.attr(null, name, -1, obj);
+            super.attr(null, name, -1, raw, obj);
             return;
         }
 
@@ -86,7 +86,7 @@ public class FixManifestAdapter extends AxmlVisitor {
             name = suggestName;
         }
 
-        super.attr(ns, name, resourceId, obj);
+        super.attr(ns, name, resourceId, raw, obj);
     }
 
     @Override

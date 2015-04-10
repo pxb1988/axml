@@ -15,6 +15,8 @@
  */
 package pxb.android.axml;
 
+import pxb.android.Res_value;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,20 +25,22 @@ public class Axml extends AxmlVisitor {
     public static class Node extends NodeVisitor {
         public static class Attr {
             public String ns, name;
-            public int resourceId, type;
-            public Object value;
+            public int resourceId;
+            public Res_value value;
+            public String raw;
 
             public void accept(NodeVisitor nodeVisitor) {
-                nodeVisitor.attr(ns, name, resourceId, type, value);
+                nodeVisitor.attr(ns, name, resourceId, raw, value);
             }
         }
 
         public static class Text {
             public int ln;
             public String text;
+            public Res_value styled;
 
             public void accept(NodeVisitor nodeVisitor) {
-                nodeVisitor.text(ln, text);
+                nodeVisitor.text(ln, text, styled);
             }
         }
 
@@ -68,13 +72,13 @@ public class Axml extends AxmlVisitor {
         }
 
         @Override
-        public void attr(String ns, String name, int resourceId, int type, Object obj) {
+        public void attr(String ns, String name, int resourceId, String raw, Res_value obj) {
             Attr attr = new Attr();
             attr.name = name;
             attr.ns = ns;
             attr.resourceId = resourceId;
-            attr.type = type;
             attr.value = obj;
+            attr.raw = raw;
             attrs.add(attr);
         }
 
@@ -93,10 +97,11 @@ public class Axml extends AxmlVisitor {
         }
 
         @Override
-        public void text(int lineNumber, String value) {
+        public void text(int lineNumber, String value, Res_value styled) {
             Text text = new Text();
             text.ln = lineNumber;
             text.text = value;
+            text.styled = styled;
             this.text = text;
         }
     }

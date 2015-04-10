@@ -69,6 +69,7 @@ public class AxmlWriter extends AxmlVisitor {
         public StringItem name;
         public StringItem ns;
         public Res_value value;
+        public StringItem value_raw;
         public StringItem raw;
 
         public Attr(StringItem ns, StringItem name) {
@@ -99,7 +100,7 @@ public class AxmlWriter extends AxmlVisitor {
         }
 
         @Override
-        public void attr(String ns, String name, int resourceId, Res_value value) {
+        public void attr(String ns, String name, int resourceId, String raw, Res_value value) {
             if (name == null) {
                 throw new RuntimeException("name can't be null");
             }
@@ -122,8 +123,11 @@ public class AxmlWriter extends AxmlVisitor {
                     break;
                 }
             }
+            if (raw != null) {
+                a.raw = stringItems.add(raw);
+            }
             if (value.raw != null) {
-                a.raw = stringItems.add(value.raw, value.styles);
+                a.value_raw = stringItems.add(value.raw, value.styles);
             }
 
             attrs.add(a);
@@ -195,8 +199,8 @@ public class AxmlWriter extends AxmlVisitor {
                 out.putShort((short) 8);
                 out.put((byte) 0);
                 out.put((byte) attr.value.type);
-                if (attr.raw != null) {
-                    out.putInt(attr.raw.index);
+                if (attr.value_raw != null) {
+                    out.putInt(attr.value_raw.index);
                 } else {
                     out.putInt(attr.value.data);
                 }
