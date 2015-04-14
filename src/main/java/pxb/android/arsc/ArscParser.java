@@ -220,6 +220,7 @@ public class ArscParser implements ResConst {
         // uint32_t lastPublicKey;
         int lastPublicKey = in.getInt();
 
+        // 1. search for strings
         {
             if(typeStrings==0){
                 E("typeStrings is 0");
@@ -254,48 +255,62 @@ public class ArscParser implements ResConst {
             }
         }
 
+
+        final int end = package_header.location + package_header.size;
+
+        // 2. search for type specs
         in.position(package_header.location + package_header.headSize);
-        int end = package_header.location + package_header.size;
         while (in.position() < end) {
             ResChunk_header chunk = new ResChunk_header(in);
             switch (chunk.type) {
-            case RES_TABLE_TYPE_SPEC_TYPE: {
+                case RES_TABLE_TYPE_SPEC_TYPE: {
 
-                /**
-                 * A specification of the resources defined by a particular type.
-                 *
-                 * There should be one of these chunks for each resource type.
-                 *
-                 * This structure is followed by an array of integers providing the set of
-                 * configuration change flags (ResTable_config::CONFIG_*) that have multiple
-                 * resources for that configuration.  In addition, the high bit is set if that
-                 * resource has been made public.
-                 *
-                 * // Additional flag indicating an entry is public.
-                 * SPEC_PUBLIC = 0x40000000
-                 */
+                    /**
+                     * A specification of the resources defined by a particular type.
+                     *
+                     * There should be one of these chunks for each resource type.
+                     *
+                     * This structure is followed by an array of integers providing the set of
+                     * configuration change flags (ResTable_config::CONFIG_*) that have multiple
+                     * resources for that configuration.  In addition, the high bit is set if that
+                     * resource has been made public.
+                     *
+                     * // Additional flag indicating an entry is public.
+                     * SPEC_PUBLIC = 0x40000000
+                     */
 
-                D("[%08x]read spec", in.position() - 8);
+                    D("[%08x]read spec", in.position() - 8);
 
-                // The type identifier this chunk is holding.  Type IDs start
-                // at 1 (corresponding to the value of the type bits in a
-                // resource identifier).  0 is invalid.
-                // uint8_t id;
-                int tid = in.get() & 0xFF;
-                in.get(); // res0
-                in.getShort();// res1
+                    // The type identifier this chunk is holding.  Type IDs start
+                    // at 1 (corresponding to the value of the type bits in a
+                    // resource identifier).  0 is invalid.
+                    // uint8_t id;
+                    int tid = in.get() & 0xFF;
+                    in.get(); // res0
+                    in.getShort();// res1
 
-                // Number of uint32_t entry configuration masks that follow.
-                // uint32_t entryCount;
-                int entryCount = in.getInt();
+                    // Number of uint32_t entry configuration masks that follow.
+                    // uint32_t entryCount;
+                    int entryCount = in.getInt();
 
-                in.position(chunk.location+chunk.headSize);
-                Type t = pkg.getType(tid, typeNamesX[tid - 1], entryCount);
-                for (int i = 0; i < entryCount; i++) {
-                    t.getSpec(i).flags = in.getInt();
+                    in.position(chunk.location + chunk.headSize);
+                    Type t = pkg.getType(tid, typeNamesX[tid - 1], entryCount);
+                    for (int i = 0; i < entryCount; i++) {
+                        t.getSpec(i).flags = in.getInt();
+                    }
                 }
-            }
                 break;
+                default:
+                    break;
+            }
+            in.position(chunk.location + chunk.size);
+        }
+
+        // 3. search for configs
+        in.position(package_header.location + package_header.headSize);
+        while (in.position() < end) {
+            ResChunk_header chunk = new ResChunk_header(in);
+            switch (chunk.type) {
             case RES_TABLE_TYPE_TYPE: {
                 /**
                  * A collection of resource entries for a particular resource data
@@ -382,9 +397,6 @@ public class ArscParser implements ResConst {
                     String packageName = readFixedU16String(in);
                     this.pkg.libraries.put(packageName, packageId);
                 }
-                break;
-            case RES_NULL_TYPE:
-            case RES_STRING_POOL_TYPE:
                 break;
             default:
                 break;

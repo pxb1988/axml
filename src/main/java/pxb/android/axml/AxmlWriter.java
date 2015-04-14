@@ -19,6 +19,7 @@ import pxb.android.Res_value;
 import pxb.android.StringBlock;
 import pxb.android.StringItem;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -33,6 +34,14 @@ import static pxb.android.axml.AxmlParser.*;
  * @author <a href="mailto:pxb1988@gmail.com">Panxiaobo</a>
  */
 public class AxmlWriter extends AxmlVisitor {
+
+    public static void main(String... args) throws IOException {
+        AxmlReader r = new AxmlReader(Util.readFile(new File(args[0])));
+        AxmlWriter w = new AxmlWriter();
+        r.accept(w);
+        Util.writeFile(w.toByteArray(), new File(args[1]));
+    }
+
     static final Comparator<Attr> ATTR_CMP = new Comparator<Attr>() {
 
         @Override
@@ -92,6 +101,9 @@ public class AxmlWriter extends AxmlVisitor {
         Attr id;
         Attr style;
         Attr clz;
+        private int attributeStart = 20;
+        private int attributeSize = 20;
+        private int headerSize = 16;
 
         public NodeImpl(StringItem ns, StringItem name) {
             super(null);
@@ -158,7 +170,13 @@ public class AxmlWriter extends AxmlVisitor {
                 attr.index = attrIndex++;
             }
 
-            int size = 24 + 36 + attrs.size() * 20;// 24 for end tag,36+x*20 for
+            int size = headerSize; // head size
+
+            size += 20;
+
+            attributeStart = size - headerSize;
+            size += attrs.size() * attributeSize;// attribute
+
             // start tag
             for (NodeImpl child : children) {
                 size += child.prepare(axmlWriter);
@@ -166,6 +184,7 @@ public class AxmlWriter extends AxmlVisitor {
             if (text != null) {
                 size += 28;
             }
+            size += 24; //  for end tag
             return size;
         }
 
@@ -181,16 +200,20 @@ public class AxmlWriter extends AxmlVisitor {
 
         void write(ByteBuffer out) throws IOException {
             // start tag
-            writeChunkHeader(out, RES_XML_START_ELEMENT_TYPE, 0x0010, 36 + attrs.size() * 20);
+            writeChunkHeader(out, RES_XML_START_ELEMENT_TYPE, headerSize, headerSize + attributeStart + attrs.size() * attributeSize);
             out.putInt(line);
             out.putInt(0xFFFFFFFF);
+            out.position(out.position() + (headerSize - 16));
+            // header size ends here
             out.putInt(ns != null ? this.ns.index : -1);
             out.putInt(name.index);
-            out.putInt(0x00140014);// TODO
+            out.putShort((short) (attributeStart));
+            out.putShort((short) attributeSize);
             out.putShort((short) this.attrs.size());
             out.putShort((short) (id == null ? 0 : id.index + 1));
             out.putShort((short) (clz == null ? 0 : clz.index + 1));
             out.putShort((short) (style == null ? 0 : style.index + 1));
+
             for (Attr attr : attrs) {
                 out.putInt(attr.ns == null ? -1 : attr.ns.index);
                 out.putInt(attr.name.index);
@@ -204,6 +227,7 @@ public class AxmlWriter extends AxmlVisitor {
                 } else {
                     out.putInt(attr.value.data);
                 }
+                out.position(out.position() + (attributeSize - 20));
             }
 
             if (this.text != null) {
