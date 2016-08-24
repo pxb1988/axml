@@ -52,6 +52,22 @@ public class ConfigDetail {
         init(ByteBuffer.wrap(data).order(ByteOrder.LITTLE_ENDIAN));
     }
 
+    public ConfigDetail() {
+        language = "any";
+        country = "any";
+        orientation = ORIENTATION.ANY;
+        touchscreen = TOUCHSCREEN.ANY;
+        density = DENSITY.DEFAULT;
+        keyboard = KEYBOARD.ANY;
+        navigation = NAVIGATION.ANY;
+        keyshidden = KEYSHIDDEN.ANY;
+        navhidden = NAVHIDDEN.ANY;
+        screensize = SCREENSIZE.ANY;
+        screenlong = SCREENLONG.ANY;
+        layoutdir = LAYOUTDIR.ANY;
+        uiModeType = UI_MODE_TYPE.ANY;
+        uiModeNight = UI_MODE_NIGHT.ANY;
+    }
     public byte[] toId() {
         int size = 36; //default size;
         if (extra != null) {

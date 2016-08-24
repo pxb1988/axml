@@ -31,6 +31,7 @@ public interface ResConst {
     int RES_XML_START_NAMESPACE_TYPE = 0x0100;
     int RES_XML_START_ELEMENT_TYPE = 0x0102;
     int RES_XML_CDATA_TYPE = 0x0104;
+    int RES_XML_LAST_CHUNK_TYPE = 0x017f;
 
     int NO_RESOURCE_ID = -1;
 }

@@ -38,7 +38,7 @@ public class AxmlWriter extends AxmlVisitor {
     public static void main(String... args) throws IOException {
         AxmlReader r = new AxmlReader(Util.readFile(new File(args[0])));
         AxmlWriter w = new AxmlWriter();
-        r.accept(w);
+        r.accept(new DumpAdapter(w));
         Util.writeFile(w.toByteArray(), new File(args[1]));
     }
 
@@ -138,7 +138,7 @@ public class AxmlWriter extends AxmlVisitor {
             if (raw != null) {
                 a.raw = stringItems.add(raw);
             }
-            if (value.raw != null) {
+            if (value!=null && value.raw != null) {
                 a.value_raw = stringItems.add(value.raw, value.styles);
             }
 
@@ -221,11 +221,18 @@ public class AxmlWriter extends AxmlVisitor {
 
                 out.putShort((short) 8);
                 out.put((byte) 0);
-                out.put((byte) attr.value.type);
-                if (attr.value_raw != null) {
-                    out.putInt(attr.value_raw.index);
+                if (attr.value == null) {
+                    out.put((byte) 0);
+                    out.putInt(0);
                 } else {
-                    out.putInt(attr.value.data);
+                    out.put((byte) attr.value.type);
+                    if (attr.value_raw != null) {
+                        out.putInt(attr.value_raw.index);
+                    } else if (attr.value.type == Res_value.TYPE_STRING) {
+                        out.putInt(-1);
+                    } else {
+                        out.putInt(attr.value.data);
+                    }
                 }
                 out.position(out.position() + (attributeSize - 20));
             }

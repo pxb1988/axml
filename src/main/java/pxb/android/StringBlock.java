@@ -21,9 +21,9 @@ import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.*;
 
+import static pxb.android.ResChunk_header.writeChunkHeader;
 import static pxb.android.ResConst.RES_STRING_POOL_TYPE;
 import static pxb.android.ResConst.RES_XML_RESOURCE_MAP_TYPE;
-
 @SuppressWarnings("serial")
 public class StringBlock {
     static final int UTF8_FLAG = 0x00000100;
@@ -213,7 +213,7 @@ public class StringBlock {
                 map.put(stringData, offset);
                 if (useUTF8) {
                     int length = stringData.length();
-                    byte[] data = stringData.getBytes("UTF-8");
+                    byte[] data = Mutf8.encode(stringData);
                     int u8lenght = data.length;
 
                     if (length > 0x7F) {
@@ -316,8 +316,9 @@ public class StringBlock {
         }
     }
 
-    public void readResourceIdTable(ByteBuffer in, int size) {
-        int count = size / 4 - 2;
+    public void readResourceIdTable(ByteBuffer in, ResChunk_header header) {
+        in.position(in.position() - 8 + header.headSize);
+        int count = (header.size - header.headSize) / 4;
         resourceIds = new int[count];
         for (int i = 0; i < count; i++) {
             resourceIds[i] = in.getInt();
@@ -362,15 +363,12 @@ public class StringBlock {
     }
 
     public void writeStringPoolSection(ByteBuffer out) throws IOException {
-        int stringSize = getStringPoolSectionSize();
-        out.putInt(RES_STRING_POOL_TYPE | (0x001C << 16));
-        out.putInt(stringSize);
+        writeChunkHeader(out, RES_STRING_POOL_TYPE, 0x001C, getStringPoolSectionSize());
         write(out);
     }
 
     public void writeXmlResourceTableSection(ByteBuffer out) {
-        out.putInt(RES_XML_RESOURCE_MAP_TYPE | (0x0008 << 16));
-        out.putInt(8 + wResUniq.size() * 4);
+        writeChunkHeader(out, RES_XML_RESOURCE_MAP_TYPE, 0x0008, getXmlResourceTableSectionSize());
         for (StringItem item : wResUniq.values()) {
             out.putInt(item.resourceId);
         }

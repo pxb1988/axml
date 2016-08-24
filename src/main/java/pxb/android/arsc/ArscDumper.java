@@ -15,14 +15,14 @@
  */
 package pxb.android.arsc;
 
+import pxb.android.axml.Util;
+
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
-
-import pxb.android.axml.Util;
 
 /**
  * dump an arsc file
@@ -48,13 +48,13 @@ public class ArscDumper {
                 }
                 for (int i = 0; i < type.configs.size(); i++) {
                     Config config = type.configs.get(i);
-                    System.out.println("      config");
+                    System.out.println("      config" + new ConfigDetail(config.id));
 
-                    List<ResEntry> entries = new ArrayList<ResEntry>(config.resources.values());
-                    for (int j = 0; j < entries.size(); j++) {
-                        ResEntry entry = entries.get(j);
+                    for (Map.Entry<ResSpec, ResEntry> e : config.resources.entrySet()) {
+                        ResEntry entry = e.getValue();
+                        ResSpec spec = e.getKey();
                         System.out.println(String.format("        resource 0x%08x %-20s: %s",
-                                resPrefix | entry.spec.id, entry.spec.name, entry.value));
+                                resPrefix | spec.id, spec.name, entry.value));
                     }
                 }
             }

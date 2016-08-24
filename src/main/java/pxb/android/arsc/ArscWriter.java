@@ -15,10 +15,7 @@
  */
 package pxb.android.arsc;
 
-import pxb.android.ResConst;
-import pxb.android.StringBlock;
-import pxb.android.StringItem;
-import pxb.android.StyleSpan;
+import pxb.android.*;
 import pxb.android.axml.Util;
 
 import java.io.File;
@@ -29,6 +26,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static pxb.android.ResChunk_header.writeChunkHeader;
 
 /**
  * Write pkgs to an arsc file
@@ -136,7 +135,7 @@ public class ArscWriter implements ResConst {
                     }
                     pkgSize += size0;// config
 
-                    pkgSize += 4 * config.entryCount;// offset
+                    pkgSize += 4 * type.specs.length;// offset
                     config.wEntryStart = pkgSize - configBasePostion;
                     int entryBase = pkgSize;
                     for (ResEntry e : config.resources.values()) {
@@ -180,7 +179,7 @@ public class ArscWriter implements ResConst {
                         if (object instanceof BagValue) {
                             travelBagValue((BagValue) object);
                         } else {
-                            travelValue((Value) object);
+                            travelValue((Res_value) object);
                         }
                     }
                 }
@@ -213,12 +212,12 @@ public class ArscWriter implements ResConst {
     }
 
     private void travelBagValue(BagValue bag) {
-        for (Map.Entry<Integer, Value> e : bag.map) {
+        for (Map.Entry<Integer, Res_value> e : bag.map) {
             travelValue(e.getValue());
         }
     }
 
-    private void travelValue(Value v) {
+    private void travelValue(Res_value v) {
         if (v.raw != null) {
             if (v.styles != null && v.styles.size() > 0) { // has style
                 addStringWithStyle(v.raw, v.styles);
@@ -234,10 +233,6 @@ public class ArscWriter implements ResConst {
         }
         strTable0.add(raw, styles);
 
-    }
-
-    private void writeChunkHeader(ByteBuffer out, int type, int headerSize, int size) {
-        out.putShort((short) type).putShort((short) headerSize).putInt(size);
     }
 
     private void write(ByteBuffer out, int size) throws IOException {
@@ -342,8 +337,8 @@ public class ArscWriter implements ResConst {
                     }
 
                     D("[%08x]write config entry offsets", out.position());
-                    for (int i = 0; i < config.entryCount; i++) {
-                        ResEntry entry = config.resources.get(i);
+                    for (int i = 0; i < t.specs.length; i++) {
+                        ResEntry entry = config.resources.get(t.specs[i]);
                         if (entry == null) {
                             out.putInt(-1);
                         } else {
@@ -355,28 +350,31 @@ public class ArscWriter implements ResConst {
                         throw new RuntimeException();
                     }
                     D("[%08x]write config entrys", out.position());
-                    for (ResEntry e : config.resources.values()) {
+                    for (Map.Entry<ResSpec, ResEntry> e : config.resources.entrySet()) {
+                        ResEntry resEntry = e.getValue();
+                        ResSpec spec = e.getKey();
                         D("[%08x]ResTable_entry", out.position());
-                        boolean isBag = e.value instanceof BagValue;
+                        boolean isBag = resEntry.value instanceof BagValue;
                         out.putShort((short) (isBag ? 16 : 8));
-                        int flag = e.flag;
+                        int flag = 0;
                         if (isBag) { // add complex flag
                             flag |= ArscParser.ENTRY_FLAG_COMPLEX;
-                        } else { // remove
-                            flag &= ~ArscParser.ENTRY_FLAG_COMPLEX;
+                        }
+                        if (resEntry.isPublic) {
+                            flag |= ArscParser.ENGRY_FLAG_PUBLIC;
                         }
                         out.putShort((short) flag);
-                        out.putInt(pctx.keyNames.get(e.spec.name == null ? "?" : e.spec.name).index);
+                        out.putInt(pctx.keyNames.get(spec.name == null ? "?" : spec.name).index);
                         if (isBag) {
-                            BagValue bag = (BagValue) e.value;
+                            BagValue bag = (BagValue) resEntry.value;
                             out.putInt(bag.parent);
                             out.putInt(bag.map.size());
-                            for (Map.Entry<Integer, Value> entry : bag.map) {
+                            for (Map.Entry<Integer, Res_value> entry : bag.map) {
                                 out.putInt(entry.getKey());
                                 writeValue(entry.getValue(), out);
                             }
                         } else {
-                            writeValue((Value) e.value, out);
+                            writeValue((Res_value) resEntry.value, out);
                         }
                     }
                 }
@@ -384,11 +382,11 @@ public class ArscWriter implements ResConst {
         }
     }
 
-    private void writeValue(Value value, ByteBuffer out) {
+    private void writeValue(Res_value value, ByteBuffer out) {
         out.putShort((short) 8);
         out.put((byte) 0);
         out.put((byte) value.type);
-        if (value.type == ArscParser.TYPE_STRING) {
+        if (value.type == Res_value.TYPE_STRING) {
             if (value.styles != null) {
                 out.putInt(strTable0.add(value.raw, value.styles).index);
             } else {
