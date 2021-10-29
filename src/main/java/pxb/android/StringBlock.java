@@ -105,13 +105,14 @@ public class StringBlock {
     }
 
     @SuppressWarnings("unused")
-    public void read(ByteBuffer in) throws IOException {
-        int trunkOffset = in.position() - 8;
+    public void read(ByteBuffer in, ResChunk_header header) throws IOException {
+        int trunkOffset = header.location;
         int stringCount = in.getInt();
         int styleCount = in.getInt();
         int flags = in.getInt();
         int stringDataOffset = in.getInt();
         int stylesDataOffset = in.getInt();
+        in.position(header.location + header.headSize);
         int strOffsets[] = new int[stringCount];
         String strings[] = new String[stringCount];
         for (int i = 0; i < stringCount; i++) {
@@ -317,7 +318,7 @@ public class StringBlock {
     }
 
     public void readResourceIdTable(ByteBuffer in, ResChunk_header header) {
-        in.position(in.position() - 8 + header.headSize);
+        in.position(header.location + header.headSize);
         int count = (header.size - header.headSize) / 4;
         resourceIds = new int[count];
         for (int i = 0; i < count; i++) {

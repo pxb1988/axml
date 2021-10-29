@@ -182,18 +182,18 @@ public class AxmlParser implements ResConst {
                 throw new RuntimeException();
             }
             fileSize = treeHeader.size;
-            int savePoint = in.position();
+            int savePoint = in.position() + treeHeader.headSize;
+            in.position(savePoint);
             for (int p = in.position(); p < fileSize; p = in.position()) {
                 ResChunk_header header = new ResChunk_header(in);
                 switch (header.type) {
                     case RES_STRING_POOL_TYPE:
-                        stringBlock.read(in);
+                        stringBlock.read(in, header);
                         if (stringBlock.styles != null && stringBlock.styles.length > 0) {
                             System.err.println("String styles found in axml");
                         }
                         break;
                     case RES_XML_RESOURCE_MAP_TYPE:
-                        in.position(p+header.headSize);
                         stringBlock.readResourceIdTable(in, header);
                         break;
                 }

@@ -123,7 +123,7 @@ public class ArscParser implements ResConst {
             ResChunk_header chunk = new ResChunk_header(in);
             if (chunk.type == RES_STRING_POOL_TYPE) {
                 StringBlock sb = new StringBlock();
-                sb.read(in);
+                sb.read(in, chunk);
                 strings = sb.strings;
                 styles = sb.styles;
                 if (DEBUG) {
@@ -231,7 +231,7 @@ public class ArscParser implements ResConst {
                     throw new RuntimeException();
                 }
                 StringBlock sb = new StringBlock();
-                sb.read(in);
+                sb.read(in, chunk);
                 typeNamesX = sb.strings;
             }
         }
@@ -245,7 +245,7 @@ public class ArscParser implements ResConst {
                     throw new RuntimeException();
                 }
                 StringBlock sb = new StringBlock();
-                sb.read(in);
+                sb.read(in, chunk);
                 keyNamesX = sb.strings;
                 if (DEBUG) {
                     for (int i = 0; i < keyNamesX.length; i++) {
