@@ -104,6 +104,45 @@ public class Axml extends AxmlVisitor {
             text.styled = styled;
             this.text = text;
         }
+
+        public Attr findFirstAttr(int resourceId) {
+            for (Node.Attr attr : this.attrs) {
+                if (attr.resourceId == resourceId) {
+                    return attr;
+                }
+            }
+            return null;
+        }
+
+        public Attr findFirstAttr(String attrName) {
+            for (Node.Attr attr : this.attrs) {
+                if (attr.name.equals(attrName) && attr.ns == null) {
+                    return attr;
+                }
+            }
+            return null;
+        }
+
+        public Node findFirst(final String nodeName) {
+            for (Node node : this.children) {
+                if (node.name.equals(nodeName)) {
+                    return node;
+                }
+            }
+            return null;
+        }
+
+        public void replace(String ns, String name, int resourceId, String raw, Res_value v) {
+            Axml.Node.Attr attr = this.findFirstAttr(resourceId);
+            if (attr != null) {
+                attr.ns = ns;
+                attr.name = name;
+                attr.value = v;
+                attr.raw = raw;
+            } else {
+                this.attr(ns, name, resourceId, raw, v);
+            }
+        }
     }
 
     public static class Ns {
@@ -144,4 +183,15 @@ public class Axml extends AxmlVisitor {
         ns.ln = ln;
         nses.add(ns);
     }
+
+    public Node findFirst(final String nodeName) {
+        for (Node node : this.firsts) {
+            if (node.name.equals(nodeName)) {
+                return node;
+            }
+        }
+        return null;
+    }
+
+
 }

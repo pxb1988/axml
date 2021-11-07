@@ -142,6 +142,10 @@ public class Res_value {
     public static Res_value newTrue() {
         return new Res_value(TYPE_INT_BOOLEAN, -1, null, null);
     }
+
+    public static Res_value newFalse() {
+        return new Res_value(TYPE_INT_BOOLEAN, 0, null, null);
+    }
     public static Res_value newDecInt(int i) {
         return new Res_value(TYPE_INT_DEC, i, null, null);
     }

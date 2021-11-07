@@ -1214,6 +1214,7 @@ public final class R {
         public static final int searchHintIcon = ATTR_PREFIX | 0x04d4;
         public static final int revisionCode = ATTR_PREFIX | 0x04d5;
         public static final int extractNativeLibs = ATTR_PREFIX | 0x04d6;
+        public static final int appComponentFactory = ATTR_PREFIX | 0x057a;
     }
     public static final class AttrNames {
         public static final String[] NAMES = new String [] {

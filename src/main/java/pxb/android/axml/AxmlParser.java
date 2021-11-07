@@ -177,12 +177,13 @@ public class AxmlParser implements ResConst {
 
     public int next() throws IOException {
         if (fileSize < 0) {
+            int start = in.position();
             ResChunk_header treeHeader = new ResChunk_header(in);
             if (treeHeader.type != RES_XML_TYPE) {
                 throw new RuntimeException();
             }
-            fileSize = treeHeader.size;
-            int savePoint = in.position() + treeHeader.headSize;
+            fileSize = start + treeHeader.size;
+            int savePoint = start + treeHeader.headSize;
             in.position(savePoint);
             for (int p = in.position(); p < fileSize; p = in.position()) {
                 ResChunk_header header = new ResChunk_header(in);
