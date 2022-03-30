@@ -16,6 +16,7 @@
 package pxb.android.axml;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Stack;
 
 import static pxb.android.axml.AxmlParser.*;
@@ -37,6 +38,10 @@ public class AxmlReader {
     final AxmlParser parser;
 
     public AxmlReader(byte[] data) {
+        this(ByteBuffer.wrap(data));
+    }
+
+    public AxmlReader(ByteBuffer data) {
         super();
         this.parser = new AxmlParser(data);
     }

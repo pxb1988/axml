@@ -17,10 +17,28 @@ package pxb.android.axml;
 
 import pxb.android.Res_value;
 
+import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
 public class Axml extends AxmlVisitor {
+    public static Axml parse(ByteBuffer b) throws IOException {
+        Axml axml = new Axml();
+        AxmlReader r = new AxmlReader(b);
+        r.accept(axml);
+        return axml;
+    }
+
+    public static Axml parse(byte[] b) throws IOException {
+        return parse(ByteBuffer.wrap(b));
+    }
+
+    public byte[] toByteArray() throws IOException {
+        AxmlWriter w = new AxmlWriter();
+        this.accept(w);
+        return w.toByteArray();
+    }
 
     public static class Node extends NodeVisitor {
         public static class Attr {
