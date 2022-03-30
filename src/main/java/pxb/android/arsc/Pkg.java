@@ -29,7 +29,7 @@ public class Pkg {
         this.name = name;
     }
 
-    public Type getType(int tid, String name, int entrySize) {
+    /* package */ Type ensureType(int tid, String name, int entrySize) {
         Type type = types.get(tid);
         if (type != null) {
             if (name != null) {

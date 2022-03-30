@@ -18,6 +18,7 @@ package pxb.android;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.util.*;
 
@@ -104,6 +105,12 @@ public class StringBlock {
         return v;
     }
 
+    static class Buff extends ByteArrayOutputStream {
+        public String toString(String enc) throws UnsupportedEncodingException {
+            return new String(super.buf, 0, super.count, enc);
+        }
+    }
+
     @SuppressWarnings("unused")
     public void read(ByteBuffer in, ResChunk_header header) throws IOException {
         int trunkOffset = header.location;
@@ -123,22 +130,38 @@ public class StringBlock {
             styleOffsets[i] = in.getInt();
         }
         int base = trunkOffset + stringDataOffset;
+        Buff buff = new Buff();
         for (int i = 0; i < strOffsets.length; i++) {
             in.position(base + strOffsets[i]);
             String s;
+            buff.reset();
 
             if (0 != (flags & UTF8_FLAG)) {
                 u8length(in); // ignored
-                int u8len = u8length(in);
+                int length = u8length(in);
                 int start = in.position();
-                int blength = u8len;
-                while (in.get(start + blength) != 0) {
+                int blength = 0;
+                while (true) {
+                    byte b = in.get(start + blength);
+                    if (b == 0) break;
+                    buff.write(b);
                     blength++;
                 }
-                s = new String(in.array(), start, blength, "UTF-8");
+                s = buff.toString("UTF-8"); // MUTF8 ?
+                if (length != s.length()) {
+                    //
+                }
             } else {
                 int length = u16length(in);
-                s = new String(in.array(), in.position(), length * 2, "UTF-16LE");
+                int start = in.position();
+                for (int blength = 0; blength < length * 2; blength++) {
+                    byte b = in.get(start + blength);
+                    buff.write(b);
+                }
+                s = buff.toString("UTF-16LE");
+                if (length != s.length()) {
+                    //
+                }
             }
             strings[i] = s;
         }

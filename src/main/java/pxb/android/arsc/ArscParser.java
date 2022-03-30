@@ -88,8 +88,11 @@ public class ArscParser implements ResConst {
     List<StyleSpan>[] styles;
     private String[] typeNamesX;
 
+    public ArscParser(ByteBuffer b) {
+        this.in = b.order(ByteOrder.LITTLE_ENDIAN);
+    }
     public ArscParser(byte[] b) {
-        this.in = ByteBuffer.wrap(b).order(ByteOrder.LITTLE_ENDIAN);
+        this(ByteBuffer.wrap(b));
     }
 
     public List<Pkg> parse() throws IOException {
@@ -294,7 +297,7 @@ public class ArscParser implements ResConst {
                     int entryCount = in.getInt();
 
                     in.position(chunk.location + chunk.headSize);
-                    Type t = pkg.getType(tid, typeNamesX[tid - 1], entryCount);
+                    Type t = pkg.ensureType(tid, typeNamesX[tid - 1], entryCount);
                     for (int i = 0; i < entryCount; i++) {
                         t.getSpec(i).flags = in.getInt();
                     }
@@ -341,7 +344,7 @@ public class ArscParser implements ResConst {
                 // Number of uint32_t entry indices that follow.
                 // uint32_t entryCount;
                 int entryCount = in.getInt();
-                Type t = pkg.getType(tid, typeNamesX[tid - 1], entryCount);
+                Type t = pkg.ensureType(tid, typeNamesX[tid - 1], entryCount);
 
                 // Offset from header where ResTable_entry data starts.
                 // uint32_t entriesStart;

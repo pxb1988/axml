@@ -22,10 +22,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static pxb.android.ResChunk_header.writeChunkHeader;
 
@@ -75,6 +72,9 @@ public class ArscWriter implements ResConst {
     boolean useUTF8 = true;
     public ArscWriter(List<Pkg> pkgs) {
         this.pkgs = pkgs;
+    }
+    public ArscWriter(Pkg pkg) {
+        this(Arrays.asList(pkg));
     }
 
     public static void main(String... args) throws IOException {
