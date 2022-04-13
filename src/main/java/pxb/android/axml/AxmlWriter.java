@@ -17,6 +17,7 @@ package pxb.android.axml;
 
 import pxb.android.Res_value;
 import pxb.android.StringBlock;
+import pxb.android.StringBlockWriter;
 import pxb.android.StringItem;
 
 import java.io.File;
@@ -288,7 +289,7 @@ public class AxmlWriter extends AxmlVisitor {
 
     private Map<String, Ns> nses = new HashMap<String, Ns>();
 
-    private StringBlock stringItems = new StringBlock();
+    private StringBlockWriter stringItems = new StringBlockWriter();
 
     @Override
     public NodeVisitor child(String ns, String name) {

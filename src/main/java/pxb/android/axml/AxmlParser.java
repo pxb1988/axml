@@ -74,7 +74,7 @@ public class AxmlParser implements ResConst {
     }
 
     public String getComment() {
-        return commentIdx < 0 ? null : stringBlock.strings[commentIdx];
+        return commentIdx < 0 ? null : stringBlock.get(commentIdx);
     }
 
     public int getAttrCount() {
@@ -87,20 +87,20 @@ public class AxmlParser implements ResConst {
 
     public String getAttrName(int i) {
         int idx = attrs.getInt(i * attributeSize + 1 * 4);
-        return stringBlock.strings[idx];
+        return stringBlock.get(idx);
 
     }
 
 
     public String getAttrNs(int i) {
         int idx = attrs.getInt(i * attributeSize + 0 * 4);
-        return idx >= 0 ? stringBlock.strings[idx] : null;
+        return idx >= 0 ? stringBlock.get(idx) : null;
     }
 
     String getAttrRawString(int i) {
         int idx = attrs.getInt(i * attributeSize + 2 * 4);
         if (idx >= 0) {
-            return stringBlock.strings[idx];
+            return stringBlock.get(idx);
         }
         return null;
     }
@@ -124,10 +124,8 @@ public class AxmlParser implements ResConst {
         String raw = null;
         List<StyleSpan> xstyles = null;
         if (type == Res_value.TYPE_STRING && data >= 0) {
-            raw = stringBlock.strings[data];
-            if (data < stringBlock.styles.length) {
-                xstyles = stringBlock.styles[data];
-            }
+            raw = stringBlock.get(data);
+            xstyles = stringBlock.getStyles(data);
         }
         if (i == idAttribute) {
             return new AttrRes_value(AttrRes_value.ID, type, data, raw, xstyles);
@@ -144,19 +142,19 @@ public class AxmlParser implements ResConst {
     }
 
     public String getName() {
-        return stringBlock.strings[nameIdx];
+        return stringBlock.get(nameIdx);
     }
 
     public String getNamespacePrefix() {
-        return stringBlock.strings[prefixIdx];
+        return stringBlock.get(prefixIdx);
     }
 
     public String getNamespaceUri() {
-        return nsIdx >= 0 ? stringBlock.strings[nsIdx] : null;
+        return nsIdx >= 0 ? stringBlock.get(nsIdx) : null;
     }
 
     public String getText() {
-        return stringBlock.strings[textIdx];
+        return stringBlock.get(textIdx);
     }
     public Res_value getTypedText(){
         int pos = typedTextPos;
@@ -167,10 +165,8 @@ public class AxmlParser implements ResConst {
         String raw = null;
         List<StyleSpan> xstyles = null;
         if (type == Res_value.TYPE_STRING) {
-            raw = stringBlock.strings[data];
-            if (data < stringBlock.styles.length) {
-                xstyles = stringBlock.styles[data];
-            }
+            raw = stringBlock.get(data);
+            xstyles = stringBlock.getStyles(data);
         }
         return new Res_value(type, data, raw, xstyles);
     }
@@ -190,9 +186,6 @@ public class AxmlParser implements ResConst {
                 switch (header.type) {
                     case RES_STRING_POOL_TYPE:
                         stringBlock.read(in, header);
-                        if (stringBlock.styles != null && stringBlock.styles.length > 0) {
-                            System.err.println("String styles found in axml");
-                        }
                         break;
                     case RES_XML_RESOURCE_MAP_TYPE:
                         stringBlock.readResourceIdTable(in, header);
