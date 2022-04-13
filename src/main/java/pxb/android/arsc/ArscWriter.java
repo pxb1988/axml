@@ -36,14 +36,14 @@ import static pxb.android.ResChunk_header.writeChunkHeader;
 public class ArscWriter implements ResConst {
     private static class PkgCtx {
         Map<String, StringItem> keyNames = new HashMap<String, StringItem>();
-        StringBlock keyNames0 = new StringBlock();
+        StringBlockWriter keyNames0 = new StringBlockWriter();
         public int keyStringOff;
         int offset;
         Pkg pkg;
         int pkgSize;
         List<String> typeNames = new ArrayList<String>();
 
-        StringBlock typeNames0 = new StringBlock();
+        StringBlockWriter typeNames0 = new StringBlockWriter();
         int typeStringOff;
 
         public void addKeyName(String name) {
@@ -68,7 +68,7 @@ public class ArscWriter implements ResConst {
 
     private List<PkgCtx> ctxs = new ArrayList<PkgCtx>(5);
     private List<Pkg> pkgs;
-    private StringBlock strTable0 = new StringBlock();
+    private StringBlockWriter strTable0 = new StringBlockWriter();
     boolean useUTF8 = true;
     public ArscWriter(List<Pkg> pkgs) {
         this.pkgs = pkgs;

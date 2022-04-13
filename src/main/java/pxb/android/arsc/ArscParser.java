@@ -66,7 +66,7 @@ public class ArscParser implements ResConst {
         }
     }
 
-    private static void E(String fmt, Object... args) {
+    public static void E(String fmt, Object... args) {
         System.err.println(String.format(fmt, args));
     }
     /**
@@ -81,12 +81,11 @@ public class ArscParser implements ResConst {
     final static short ENTRY_FLAG_COMPLEX = 0x0001;
 
     private ByteBuffer in;
-    private String[] keyNamesX;
+    private StringBlock keyNamesX;
     private Pkg pkg;
     private List<Pkg> pkgs = new ArrayList<Pkg>();
-    private String[] strings;
-    List<StyleSpan>[] styles;
-    private String[] typeNamesX;
+    private StringBlock strings;
+    private StringBlock typeNamesX;
 
     public ArscParser(ByteBuffer b) {
         this.in = b.order(ByteOrder.LITTLE_ENDIAN);
@@ -127,13 +126,7 @@ public class ArscParser implements ResConst {
             if (chunk.type == RES_STRING_POOL_TYPE) {
                 StringBlock sb = new StringBlock();
                 sb.read(in, chunk);
-                strings = sb.strings;
-                styles = sb.styles;
-                if (DEBUG) {
-                    for (int i = 0; i < strings.length; i++) {
-                        D("STR [%08x] %s", i, strings[i]);
-                    }
-                }
+                strings = sb;
                 break;
             }
             in.position(chunk.location + chunk.size);
@@ -164,7 +157,7 @@ public class ArscParser implements ResConst {
 
         int flags = in.getShort(); // ENTRY_FLAG_PUBLIC
         int keyStr = in.getInt();
-        spec.updateName(keyNamesX[keyStr]);
+        spec.updateName(keyNamesX.get(keyStr));
 
         ResEntry resEntry = new ResEntry();
         resEntry.isPublic = 0 != (flags & ENGRY_FLAG_PUBLIC);
@@ -235,7 +228,7 @@ public class ArscParser implements ResConst {
                 }
                 StringBlock sb = new StringBlock();
                 sb.read(in, chunk);
-                typeNamesX = sb.strings;
+                typeNamesX = sb;
             }
         }
         {
@@ -249,12 +242,7 @@ public class ArscParser implements ResConst {
                 }
                 StringBlock sb = new StringBlock();
                 sb.read(in, chunk);
-                keyNamesX = sb.strings;
-                if (DEBUG) {
-                    for (int i = 0; i < keyNamesX.length; i++) {
-                        D("STR [%08x] %s", i, keyNamesX[i]);
-                    }
-                }
+                keyNamesX = sb;
             }
         }
 
@@ -297,7 +285,7 @@ public class ArscParser implements ResConst {
                     int entryCount = in.getInt();
 
                     in.position(chunk.location + chunk.headSize);
-                    Type t = pkg.ensureType(tid, typeNamesX[tid - 1], entryCount);
+                    Type t = pkg.ensureType(tid, typeNamesX.get(tid - 1), entryCount);
                     for (int i = 0; i < entryCount; i++) {
                         t.getSpec(i).flags = in.getInt();
                     }
@@ -344,7 +332,7 @@ public class ArscParser implements ResConst {
                 // Number of uint32_t entry indices that follow.
                 // uint32_t entryCount;
                 int entryCount = in.getInt();
-                Type t = pkg.ensureType(tid, typeNamesX[tid - 1], entryCount);
+                Type t = pkg.ensureType(tid, typeNamesX.get(tid - 1), entryCount);
 
                 // Offset from header where ResTable_entry data starts.
                 // uint32_t entriesStart;
@@ -371,9 +359,11 @@ public class ArscParser implements ResConst {
                 D("[%08x]read config entrys", in.position());
                 for (int i = 0; i < entrys.length; i++) {
                     if (entrys[i] != -1) {
-                        in.position(chunk.location + entriesStart + entrys[i]);
-                        ResSpec spec = t.getSpec(i);
-                        readEntry(config, spec);
+                        try {
+                            extracted(in, chunk, t, entriesStart, config, entrys, i);
+                        } catch (Exception ignore) {
+                            E("fail parse config entry %d", i);
+                        }
                     }
                 }
 
@@ -408,6 +398,12 @@ public class ArscParser implements ResConst {
         }
     }
 
+    private void extracted(ByteBuffer in, ResChunk_header chunk, Type t, int entriesStart, Config config, int[] entrys, int i) {
+        in.position(chunk.location + entriesStart + entrys[i]);
+        ResSpec spec = t.getSpec(i);
+        readEntry(config, spec);
+    }
+
     private String readFixedU16String(ByteBuffer in) {
         String name;
         int nextPisition = in.position() + 128 * 2;
@@ -434,10 +430,9 @@ public class ArscParser implements ResConst {
         String raw = null;
         List<StyleSpan> xstyles = null;
         if (type == Res_value.TYPE_STRING) {
-            raw = strings[data];
-            if (data < styles.length) {
-                xstyles = styles[data];
-            }
+            raw = strings.get(data);
+            xstyles = strings.getStyles(data);
+
         }
         in.position(pos + size1);
         return new Res_value(type, data, raw, xstyles);

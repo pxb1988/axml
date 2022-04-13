@@ -52,7 +52,11 @@ public class ArscDumper {
             }
             for (int i = 0; i < type.configs.size(); i++) {
                 Config config = type.configs.get(i);
-                System.out.println("      config" + new ConfigDetail(config.id));
+                try {
+                    System.out.println("      config" + new ConfigDetail(config.id));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
 
                 for (Map.Entry<ResSpec, ResEntry> e : config.resources.entrySet()) {
                     ResEntry entry = e.getValue();
